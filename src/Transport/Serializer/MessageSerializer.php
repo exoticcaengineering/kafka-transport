@@ -34,7 +34,7 @@ class MessageSerializer implements SerializerInterface
     public function __construct(
         string $staticMethodIdentifier,
         array $routingMap,
-        ?SerializerInterface $serializer = null,
+        ?SymfonySerializerInterface $serializer = null,
     ) {
         $this->routingMap = $routingMap;
         $this->staticMethodIdentifier = $staticMethodIdentifier;

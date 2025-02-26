@@ -12,6 +12,7 @@ final readonly class GeneralSetting
         public string          $staticMethodIdentifier,
         public ProducerSetting $producer,
         public ConsumerSetting $consumer,
+        public ?string          $serializer = null,
     ) {
     }
 }

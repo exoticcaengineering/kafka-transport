@@ -100,6 +100,10 @@ class ExoticcaKafkaBundle extends AbstractBundle
                         ->end()
                     ->end()
                 ->end()
+                ->scalarNode('serializer')
+                    ->defaultNull()
+                    ->info('Serializer class to use')
+                ->end()
             ->end();
     }
 

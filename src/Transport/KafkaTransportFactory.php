@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Exoticca\KafkaMessenger\Transport;
 
 use Exoticca\KafkaMessenger\SchemaRegistry\SchemaRegistryManager;
+use Symfony\Component\Messenger\Transport\Serialization\PhpSerializer;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use Symfony\Component\Messenger\Transport\TransportFactoryInterface;
 use Symfony\Component\Messenger\Transport\TransportInterface;
@@ -33,6 +34,7 @@ final readonly class KafkaTransportFactory implements TransportFactoryInterface
         $serializer = new MessageSerializer(
             staticMethodIdentifier: $options->staticMethodIdentifier,
             routingMap: $options->consumer->routing,
+            serializer: $options->serializer,
         );
 
         $connection = new KafkaConnection(

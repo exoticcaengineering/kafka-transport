@@ -6,7 +6,6 @@ use Exoticca\KafkaMessenger\Transport\Setting\ConsumerSetting;
 use Exoticca\KafkaMessenger\Transport\Setting\GeneralSetting;
 use Exoticca\KafkaMessenger\Transport\Setting\ProducerSetting;
 use Exoticca\KafkaMessenger\Transport\Setting\SettingManager;
-use LogicException;
 
 final class KafkaTransportSettingResolver
 {
@@ -80,6 +79,10 @@ final class KafkaTransportSettingResolver
             $producerOptions['validate_schema'] = $validateSchema;
         }
 
+        if (isset($options["serializer"]) && (!is_string($options["serializer"]) || !class_exists($options["serializer"]))) {
+            throw new \InvalidArgumentException(sprintf('The "serializer" option type must be a class name string with a valid serializer, "%s" ', $options["serializer"]));
+        }
+
         $consumerOptions['routing'] = array_column($consumerOptions['routing'], 'class', 'name');
         $producerOptions['routing'] = array_column($producerOptions['routing'], 'topic', 'name');
 
@@ -107,6 +110,7 @@ final class KafkaTransportSettingResolver
             staticMethodIdentifier: $options['identifier']['staticMethod'],
             producer: $producerConfig,
             consumer: $consumerConfig,
+            serializer: $options['serializer'] ?? null,
         );
     }
 }
