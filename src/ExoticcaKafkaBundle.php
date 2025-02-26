@@ -109,9 +109,6 @@ class ExoticcaKafkaBundle extends AbstractBundle
 
         $services->set(KafkaTransportSettingResolver::class);
 
-        $services->set(AvroSchemaRegistrySerializer::class)
-            ->alias(SchemaRegistrySerializer::class, AvroSchemaRegistrySerializer::class);
-
         $services
             ->set(KafkaTransportFactory::class)
             ->args([
@@ -125,7 +122,6 @@ class ExoticcaKafkaBundle extends AbstractBundle
             ->set(SchemaRegistryManager::class)
             ->args(
                 [
-                    new Reference(SchemaRegistrySerializer::class),
                     new Reference(SchemaRegistryHttpClient::class)
                 ]
             )->tag('messenger.transport.kafka.exoticca.schema_registry_manager');

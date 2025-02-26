@@ -61,12 +61,12 @@ class KafkaConnection
 
             switch ($kafkaMessage->err) {
                 case \RD_KAFKA_RESP_ERR_NO_ERROR:
-
+                    $messageIdentifier = $kafkaMessage->headers[MessageSerializer::identifierHeaderKey()] ?? null;
                     $forceAckByRoutingMap = false;
 
                     $messageFoundInRouting = false;
                     foreach ($this->generalSetting->consumer->routing as $name => $class) {
-                        if ($name === $kafkaMessage->headers[MessageSerializer::identifierHeaderKey()]) {
+                        if ($name == $messageIdentifier) {
                             $messageFoundInRouting = true;
                             break;
                         }

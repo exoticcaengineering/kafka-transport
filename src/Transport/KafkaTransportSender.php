@@ -9,6 +9,7 @@ use Exoticca\KafkaMessenger\SchemaRegistry\SchemaRegistryManager;
 use Exoticca\KafkaMessenger\Transport\Serializer\MessageSerializer;
 use Exoticca\KafkaMessenger\Transport\Stamp\KafkaForceFlushStamp;
 use Exoticca\KafkaMessenger\Transport\Stamp\KafkaMessageKeyStamp;
+use Exoticca\KafkaMessenger\Transport\Stamp\KafkaMessageVersionStamp;
 use Exoticca\KafkaMessenger\Transport\Stamp\KafkaNoFlushStamp;
 use Exoticca\KafkaMessenger\Transport\Stamp\KafkaMessageStamp;
 use Symfony\Component\Messenger\Envelope;
@@ -28,6 +29,7 @@ final class KafkaTransportSender implements SenderInterface
 
     public function send(Envelope $envelope): Envelope
     {
+        $targetVersion = $envelope->last(KafkaMessageVersionStamp::class);
         $decodedEnvelope = $this->serializer->encode($envelope);
 
         if ($this->schemaRegistryManager && $this->serializer instanceof PhpSerializer) {
@@ -39,9 +41,9 @@ final class KafkaTransportSender implements SenderInterface
         $messageFlags = null;
 
         if ($messageStamp = $envelope->last(KafkaMessageStamp::class)) {
-            $partition = $messageStamp->partition;
-            $messageFlags = $messageStamp->messageFlags;
-            $key = $messageStamp->key;
+            $partition = $messageStamp->partition ?? null;
+            $messageFlags = $messageStamp->messageFlags ?? null;
+            $key = $messageStamp->key ?? null;
         }
 
         if ($keyStamp = $envelope->last(KafkaMessageKeyStamp::class)) {
@@ -77,7 +79,7 @@ final class KafkaTransportSender implements SenderInterface
                 headers: $decodedEnvelope["headers"] ?? [],
                 forceFlush: $forceFlush,
                 identifier: $identifier,
-                beforeProduceConvertBody: fn (string $topic) => $this->encodeWithSchemaRegistry($topic, $decodedEnvelope["body"], $identifier)
+                beforeProduceConvertBody: fn (string $topic) => $this->encodeWithSchemaRegistry($topic, $decodedEnvelope["body"], $identifier, $targetVersion)
             );
         } catch (Exception $e) {
             throw new TransportException($e->getMessage(), 0, $e);
@@ -89,10 +91,16 @@ final class KafkaTransportSender implements SenderInterface
     public function encodeWithSchemaRegistry(
         string $topic,
         string $body,
-        ?string $typeName = null
+        ?string $typeName = null,
+        ?int $targetVersion = null
     ): string {
         if ($this->schemaRegistryManager) {
-            $body = $this->schemaRegistryManager->encode(json_decode($body, true), $topic, $typeName);
+            $body = $this->schemaRegistryManager->encode(
+                body: json_decode($body, true),
+                topic: $topic,
+                messageType: $typeName,
+                version: $targetVersion
+            );
         }
         return $body;
     }
