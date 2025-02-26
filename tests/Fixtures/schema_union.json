@@ -1,0 +1,160 @@
+{
+  "subject": "public_revenue_rule_fct-value",
+  "version": 2,
+  "id": 100091,
+  "schema": [
+    {
+      "type": "record",
+      "name": "cluster_created",
+      "namespace": "com.exoticca",
+      "fields": [
+        {
+          "name": "clusterId",
+          "type": "string",
+          "doc": "Unique identifier for the cluster."
+        },
+        {
+          "name": "productId",
+          "type": "int",
+          "doc": "Unique identifier for the product."
+        },
+        {
+          "name": "categoryId",
+          "type": "int",
+          "doc": "Unique identifier for the category."
+        },
+        {
+          "name": "airport",
+          "type": "string",
+          "doc": "Airport code."
+        },
+        {
+          "name": "calendarDateFrom",
+          "type": "string",
+          "doc": "Start date of the calendar range in 'Y-m-d' format."
+        },
+        {
+          "name": "calendarDateTo",
+          "type": "string",
+          "doc": "End date of the calendar range in 'Y-m-d' format."
+        },
+        {
+          "name": "occurredOn",
+          "type": "string",
+          "doc": "End date of the calendar range in 'Y-m-d' format."
+        }
+      ]
+    },
+    {
+      "type": "record",
+      "name": "skus_found_for_cluster",
+      "namespace": "com.exoticca",
+      "fields": [
+        {
+          "name": "clusterId",
+          "type": "string",
+          "doc": "Unique identifier for the cluster."
+        },
+        {
+          "name": "eventId",
+          "type": "string",
+          "default": "undefined"
+        },
+        {
+          "name": "skus",
+          "type": {
+            "type": "array",
+            "items": {
+              "type": "record",
+              "name": "SmartDeparture",
+              "fields": [
+                {
+                  "name": "productId",
+                  "type": "int"
+                },
+                {
+                  "name": "categoryId",
+                  "type": "int"
+                },
+                {
+                  "name": "categoryTypeId",
+                  "type": "int"
+                },
+                {
+                  "name": "airportId",
+                  "type": "string"
+                },
+                {
+                  "name": "departureDateAtom",
+                  "type": "string"
+                },
+                {
+                  "name": "landCostPrice",
+                  "type": "double"
+                },
+                {
+                  "name": "flightCostPrice",
+                  "type": "double"
+                },
+                {
+                  "name": "totalRetailPrice",
+                  "type": "double"
+                },
+                {
+                  "name": "totalMargin",
+                  "type": "double"
+                },
+                {
+                  "name": "calendarPrice",
+                  "type": "double"
+                },
+                {
+                  "name": "calendarMargin",
+                  "type": "double"
+                },
+                {
+                  "name": "adjustedMargin",
+                  "type": ["null", "int", "double"],
+                  "default": null
+                },
+                {
+                  "name": "categoryMinPrice",
+                  "type": "double"
+                },
+                {
+                  "name": "hasGroup",
+                  "type": "boolean"
+                },
+                {
+                  "name": "totalQuota",
+                  "type": "int"
+                },
+                {
+                  "name": "quotaSold",
+                  "type": "int"
+                },
+                {
+                  "name": "quotaAvailable",
+                  "type": "int"
+                }
+              ]
+            }
+          },
+          "doc": "Array of SKU identifiers found for the cluster."
+        }
+      ]
+    },
+    {
+      "type": "record",
+      "name": "no_skus_found_for_cluster",
+      "namespace": "com.exoticca",
+      "fields": [
+        {
+          "name": "clusterId",
+          "type": "string",
+          "doc": "Unique identifier for the cluster."
+        }
+      ]
+    }
+  ]
+}

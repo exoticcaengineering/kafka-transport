@@ -1,0 +1,57 @@
+{
+  "name": "exoticca/kafka-transport",
+  "description": "A Symfony bundle for integrating Kafka with Messenger",
+  "type": "symfony-bundle",
+  "keywords": ["kafka", "symfony", "messenger", "transport", "queue", "bundle"],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Exoticca",
+      "email": "technology@exoticca.com"
+    }
+  ],
+  "require": {
+    "php": "^8.3",
+    "ext-json": "*",
+    "ext-rdkafka": "*",
+    "jaumo/avro": "^3.0",
+    "phpdocumentor/reflection-docblock": "^5.6",
+    "psr/log": "^1.1 || ^2.0 || ^3.0",
+    "symfony/config": "^6.0||7.*",
+    "symfony/dependency-injection": "^6.0||7.*",
+    "symfony/http-client": "^6.0||7.*",
+    "symfony/http-kernel": "^6.0||7.*",
+    "symfony/messenger": "^6.0||7.*",
+    "symfony/property-access": "^6.0||7.*",
+    "symfony/property-info": "^6.0||7.*",
+    "symfony/serializer": "^6.0 || ^7.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Exoticca\\KafkaMessenger\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Exoticca\\KafkaMessenger\\Tests\\": "tests/"
+    }
+  },
+  "suggest": {
+    "ext-rdkafka": "^6.0; Needed to support Kafka connectivity"
+  },
+  "config": {
+    "sort-packages": true,
+    "preferred-install": "dist"
+  },
+  "minimum-stability": "stable",
+  "extra": {
+    "branch-alias": {
+      "dev-main": "1.x-dev"
+    }
+  },
+  "require-dev": {
+    "dg/bypass-finals": "^1.9",
+    "friendsofphp/php-cs-fixer": "^3.69",
+    "phpunit/phpunit": "^12.0"
+  }
+}
