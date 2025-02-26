@@ -48,7 +48,7 @@ final class KafkaTransportReceiverTest extends TestCase
 
     public function test_get_with_valid_message(): void
     {
-        $message = $this->createMock(Message::class);
+        $message = new Message();
         $message->payload = '{"data":"test"}';
         $message->headers = ['header1' => 'value1'];
 
@@ -80,7 +80,7 @@ final class KafkaTransportReceiverTest extends TestCase
 
     public function test_get_with_schema_registry(): void
     {
-        $message = $this->createMock(Message::class);
+        $message = new Message();
         $message->payload = '{"data":"test"}';
         $message->headers = ['header1' => 'value1'];
 
@@ -115,7 +115,7 @@ final class KafkaTransportReceiverTest extends TestCase
 
     public function test_get_with_schema_registry_and_php_serializer_throws_exception(): void
     {
-        $message = $this->createMock(Message::class);
+        $message = new Message();
         $message->payload = '{"data":"test"}';
         $message->headers = ['header1' => 'value1'];
 
@@ -138,7 +138,7 @@ final class KafkaTransportReceiverTest extends TestCase
     public function test_get_with_specific_queues(): void
     {
         $queueNames = ['topic1', 'topic2'];
-        $message = $this->createMock(Message::class);
+        $message = new Message();
         $message->payload = '{"data":"test"}';
         $message->headers = ['header1' => 'value1'];
 
@@ -162,7 +162,7 @@ final class KafkaTransportReceiverTest extends TestCase
 
     public function test_ack_delegates_to_connection(): void
     {
-        $message = $this->createMock(Message::class);
+        $message = new Message();
         $envelope = new Envelope(new \stdClass(), [
             new KafkaMessageStamp($message)
         ]);
@@ -178,7 +178,7 @@ final class KafkaTransportReceiverTest extends TestCase
 
     public function test_reject_delegates_to_ack(): void
     {
-        $message = $this->createMock(Message::class);
+        $message = new Message();
         $envelope = new Envelope(new \stdClass(), [
             new KafkaMessageStamp($message)
         ]);

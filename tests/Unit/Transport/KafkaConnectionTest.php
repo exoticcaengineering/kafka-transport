@@ -285,11 +285,11 @@ class KafkaConnectionTest extends TestCase
         $this->connection->ack($message);
     }
 
-    public function test_ack_uses_commit_when_consume_timeout_is_zero(): void
+    public function test_ack_uses_commit_when_commit_async_is_true(): void
     {
         $generalSetting = GeneralSettingMother::create([
             'consumer' => [
-                'consumeTimeout' => 0
+                'commitAsync' => true
             ]
         ]);
 
@@ -298,7 +298,7 @@ class KafkaConnectionTest extends TestCase
         $message = new Message();
 
         $this->consumer->expects($this->once())
-            ->method('commit')
+            ->method('commitAsync')
             ->with($message);
 
         $this->injectMockConsumer();

@@ -37,6 +37,7 @@ class KafkaConnection
 
         if (!$this->consumerSubscribed) {
             $consumer->subscribe(!empty($topicsToFilter) ? $topicsToFilter : $this->generalSetting->consumer->topics);
+            $this->consumerSubscribed = true;
         }
         $this->consumerMustBeRunning = true;
 
@@ -101,7 +102,7 @@ class KafkaConnection
     {
         $consumer = $this->getConsumer();
 
-        if ($this->generalSetting->consumer->consumeTimeout) {
+        if ($this->generalSetting->consumer->commitAsync) {
             $consumer->commitAsync($message);
         } else {
             $consumer->commit($message);
