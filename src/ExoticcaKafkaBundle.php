@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Exoticca\KafkaMessenger;
 
-use Exoticca\KafkaMessenger\SchemaRegistry\AvroSchemaRegistrySerializer;
+use Exoticca\KafkaMessenger\DependencyInjection\CompilerPass\ExoticcaKafkaCompilerPass;
 use Exoticca\KafkaMessenger\SchemaRegistry\SchemaRegistryHttpClient;
 use Exoticca\KafkaMessenger\SchemaRegistry\SchemaRegistryManager;
-use Exoticca\KafkaMessenger\SchemaRegistry\SchemaRegistrySerializer;
-use Exoticca\KafkaMessenger\Transport\Filter\RecordFilterManager;
-use Exoticca\KafkaMessenger\Transport\Filter\RecordFilterStrategy;
 use Exoticca\KafkaMessenger\Transport\KafkaTransportFactory;
 use Exoticca\KafkaMessenger\Transport\KafkaTransportSettingResolver;
+use Exoticca\KafkaMessenger\Transport\Metadata\KafkaMetadataHookInterface;
 use Exoticca\KafkaMessenger\Transport\Setting\SettingManager;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -19,8 +17,6 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
-
-use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
 class ExoticcaKafkaBundle extends AbstractBundle
 {
@@ -113,11 +109,15 @@ class ExoticcaKafkaBundle extends AbstractBundle
 
         $services->set(KafkaTransportSettingResolver::class);
 
+        $builder->registerForAutoconfiguration(KafkaMetadataHookInterface::class)
+            ->addTag(KafkaMetadataHookInterface::class);
+
         $services
             ->set(KafkaTransportFactory::class)
             ->args([
                 new Reference(KafkaTransportSettingResolver::class),
                 new Reference(SchemaRegistryManager::class),
+                null,
                 null
             ])
             ->tag('messenger.transport_factory');
@@ -128,7 +128,7 @@ class ExoticcaKafkaBundle extends AbstractBundle
                 [
                     new Reference(SchemaRegistryHttpClient::class)
                 ]
-            )->tag('messenger.transport.kafka.exoticca.schema_registry_manager');
+            )->tag('exoticca.kafka.transport.schema_registry_manager');
 
         $services->set(SchemaRegistryHttpClient::class)
             ->args([
@@ -137,13 +137,19 @@ class ExoticcaKafkaBundle extends AbstractBundle
                 $config['schema_registry']["api_secret"],
                 new Reference(HttpClientInterface::class)
             ])
-            ->tag('messenger.transport.kafka.exoticca.schema_registry');
+            ->tag('exoticca.kafka.transport.schema_registry_manager');
 
         $kafkaConfigValidator = new SettingManager();
         $kafkaConfigValidator->setupConsumerOptions($config, 'In exoticca_kafka_messenger.consumer configuration');
         $kafkaConfigValidator->setupProducerOptions($config, 'In exoticca_kafka_messenger.producer configuration');
 
         $kafkaTransportDefinition = $builder->getDefinition(KafkaTransportFactory::class);
-        $kafkaTransportDefinition->replaceArgument(2, $config);
+
+        $kafkaTransportDefinition->replaceArgument(3, $config);
+    }
+
+    public function build(ContainerBuilder $container): void
+    {
+        $container->addCompilerPass(new ExoticcaKafkaCompilerPass());
     }
 }

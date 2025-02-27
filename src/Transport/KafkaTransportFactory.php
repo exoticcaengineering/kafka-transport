@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Exoticca\KafkaMessenger\Transport;
 
 use Exoticca\KafkaMessenger\SchemaRegistry\SchemaRegistryManager;
-use Symfony\Component\Messenger\Transport\Serialization\PhpSerializer;
+use Exoticca\KafkaMessenger\Transport\Metadata\KafkaMetadataHookInterface;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use Symfony\Component\Messenger\Transport\TransportFactoryInterface;
 use Symfony\Component\Messenger\Transport\TransportInterface;
@@ -15,16 +15,19 @@ final readonly class KafkaTransportFactory implements TransportFactoryInterface
 {
     private KafkaTransportSettingResolver $configuration;
     private ?array $globalConfig;
-    private ?SchemaRegistryManager $schemaRegistryManager;
+    private SchemaRegistryManager $schemaRegistryManager;
+    private ?KafkaMetadataHookInterface $metadata;
 
     public function __construct(
         KafkaTransportSettingResolver $configuration,
-        ?SchemaRegistryManager        $schemaRegistryManager = null,
+        SchemaRegistryManager         $schemaRegistryManager,
+        ?KafkaMetadataHookInterface   $metadata = null,
         ?array                        $globalConfig = null,
     ) {
         $this->configuration = $configuration;
         $this->globalConfig = $globalConfig;
         $this->schemaRegistryManager = $schemaRegistryManager;
+        $this->metadata = $metadata;
     }
 
     public function createTransport(string $dsn, array $options, SerializerInterface $serializer): TransportInterface
@@ -44,6 +47,7 @@ final readonly class KafkaTransportFactory implements TransportFactoryInterface
         return new KafkaTransport(
             sender: new KafkaTransportSender(
                 connection: $connection,
+                metadata: $this->metadata,
                 serializer: $serializer,
                 schemaRegistryManager: $options->producer->validateSchema ? $this->schemaRegistryManager : null,
             ),

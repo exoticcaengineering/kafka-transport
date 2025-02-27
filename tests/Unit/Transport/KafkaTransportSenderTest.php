@@ -67,7 +67,7 @@ final class KafkaTransportSenderTest extends TestCase
                 $this->isCallable()
             );
 
-        $this->sender = new KafkaTransportSender($this->connection, $this->serializer);
+        $this->sender = new KafkaTransportSender($this->connection, null, $this->serializer);
 
         $result = $this->sender->send($envelope);
 
@@ -88,6 +88,7 @@ final class KafkaTransportSenderTest extends TestCase
 
         $this->sender = new KafkaTransportSender(
             $this->connection,
+            null,
             $this->serializer,
             $this->schemaRegistryManager
         );
@@ -127,7 +128,7 @@ final class KafkaTransportSenderTest extends TestCase
                 $this->isCallable()
             );
 
-        $this->sender = new KafkaTransportSender($this->connection, $this->serializer);
+        $this->sender = new KafkaTransportSender($this->connection, null, $this->serializer);
 
         $result = $this->sender->send($envelope);
 
@@ -164,7 +165,7 @@ final class KafkaTransportSenderTest extends TestCase
                 $this->isCallable()
             );
 
-        $this->sender = new KafkaTransportSender($this->connection, $this->serializer);
+        $this->sender = new KafkaTransportSender($this->connection, null, $this->serializer);
 
         $result = $this->sender->send($envelope);
 
@@ -184,7 +185,7 @@ final class KafkaTransportSenderTest extends TestCase
             ->with($envelope)
             ->willReturn($encodedEnvelope);
 
-        $this->sender = new KafkaTransportSender($this->connection, $this->serializer);
+        $this->sender = new KafkaTransportSender($this->connection, null, $this->serializer);
 
         $this->expectException(Exception::class);
         $this->expectExceptionMessage('Discriminatory name not found in envelope');
@@ -211,7 +212,7 @@ final class KafkaTransportSenderTest extends TestCase
             ->method('produce')
             ->willThrowException(new Exception('Connection error'));
 
-        $this->sender = new KafkaTransportSender($this->connection, $this->serializer);
+        $this->sender = new KafkaTransportSender($this->connection, null, $this->serializer);
 
         $this->expectException(TransportException::class);
         $this->expectExceptionMessage('Connection error');
@@ -231,7 +232,7 @@ final class KafkaTransportSenderTest extends TestCase
             ->with(['data' => 'test'], $topic, $typeName)
             ->willReturn($encodedBody);
 
-        $this->sender = new KafkaTransportSender($this->connection, $this->serializer, $this->schemaRegistryManager);
+        $this->sender = new KafkaTransportSender($this->connection, null, $this->serializer, $this->schemaRegistryManager);
 
         $result = $this->sender->encodeWithSchemaRegistry($topic, $body, $typeName);
 
@@ -244,7 +245,7 @@ final class KafkaTransportSenderTest extends TestCase
         $topic = 'test-topic';
         $typeName = 'message_type';
 
-        $this->sender = new KafkaTransportSender($this->connection, $this->serializer);
+        $this->sender = new KafkaTransportSender($this->connection, null, $this->serializer);
 
         $result = $this->sender->encodeWithSchemaRegistry($topic, $body, $typeName);
 

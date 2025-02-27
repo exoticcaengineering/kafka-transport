@@ -6,6 +6,7 @@ namespace Exoticca\KafkaMessenger\Transport;
 
 use Exception;
 use Exoticca\KafkaMessenger\SchemaRegistry\SchemaRegistryManager;
+use Exoticca\KafkaMessenger\Transport\Metadata\KafkaMetadataHookInterface;
 use Exoticca\KafkaMessenger\Transport\Serializer\MessageSerializer;
 use Exoticca\KafkaMessenger\Transport\Stamp\KafkaForceFlushStamp;
 use Exoticca\KafkaMessenger\Transport\Stamp\KafkaMessageKeyStamp;
@@ -21,15 +22,21 @@ use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 final class KafkaTransportSender implements SenderInterface
 {
     public function __construct(
-        private KafkaConnection      $connection,
-        private ?SerializerInterface $serializer = new PhpSerializer(),
-        private ?SchemaRegistryManager $schemaRegistryManager = null,
+        private KafkaConnection             $connection,
+        private ?KafkaMetadataHookInterface $metadata = null,
+        private ?SerializerInterface        $serializer = new PhpSerializer(),
+        private ?SchemaRegistryManager      $schemaRegistryManager = null,
     ) {
     }
 
     public function send(Envelope $envelope): Envelope
     {
         $targetVersion = $envelope->last(KafkaMessageVersionStamp::class);
+
+        if ($this->metadata) {
+            $envelope = $this->metadata->addMetadata($envelope);
+        }
+
         $decodedEnvelope = $this->serializer->encode($envelope);
 
         if ($this->schemaRegistryManager && $this->serializer instanceof PhpSerializer) {

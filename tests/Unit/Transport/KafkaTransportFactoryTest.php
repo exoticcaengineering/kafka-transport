@@ -66,6 +66,7 @@ final class KafkaTransportFactoryTest extends TestCase
         $factory = new KafkaTransportFactory(
             $settingResolver,
             $schemaRegistry,
+            null,
             []
         );
 
@@ -79,7 +80,8 @@ final class KafkaTransportFactoryTest extends TestCase
         $settingResolver = $this->createMock(KafkaTransportSettingResolver::class);
 
         return new KafkaTransportFactory(
-            $settingResolver
+            $settingResolver,
+            $this->createMock(SchemaRegistryManager::class),
         );
     }
 }
