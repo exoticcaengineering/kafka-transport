@@ -66,7 +66,7 @@ kafka:
     consumer:
       routing:
         - name: 'test_event'
-          class: 'Exoticca\RMS\Domain\Event\TestEvent'
+          class: 'Exoticca\Domain\Event\TestEvent'
       config:
         group.id: 'group-id'
 
