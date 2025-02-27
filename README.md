@@ -1,3 +1,9 @@
+<p align="center">
+  <a href="https://exoticca.com">
+    <img alt="Exoticca logo" src="https://www.exoticca.com/_next/image?url=%2Fassets%2Fimages%2Flogos%2Fexoticca-logo-white-medium.jpg&w=640&q=100"/>
+  </a>
+</p>
+
 # Exoticca Kafka Transport Bundle
 
 ## What is it for?
