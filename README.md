@@ -97,7 +97,7 @@ complex_transport:
     topics: ['customers', 'orders']
     consumer:
       config:
-        group.id: '%env(APP_ENV)%-rms-public-events'
+        group.id: 'group-id'
       routing:
         - name: 'customer_created'
           class: 'Exoticca\Domain\Customer\Event\CustomerCreated'
