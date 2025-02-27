@@ -1,4 +1,4 @@
-# Exoticca Kafka Messenger Bundle
+# Exoticca Kafka Transport Bundle
 
 ## What is it for?
 The **Exoticca Kafka Messenger Bundle** extends Symfony Messenger's capability to use Kafka as a transport, facilitating integration with event-driven architectures.
