@@ -34,7 +34,7 @@ final class KafkaTransportSender implements SenderInterface
         $targetVersion = $envelope->last(KafkaMessageVersionStamp::class);
 
         if ($this->metadata) {
-            $envelope = $this->metadata->addMetadata($envelope);
+            $envelope = $this->metadata->beforeProduce($envelope);
         }
 
         $decodedEnvelope = $this->serializer->encode($envelope);

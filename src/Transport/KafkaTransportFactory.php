@@ -53,6 +53,7 @@ final readonly class KafkaTransportFactory implements TransportFactoryInterface
             ),
             receiver: new KafkaTransportReceiver(
                 connection: $connection,
+                metadata: $this->metadata,
                 serializer: $serializer,
                 schemaRegistryManager: $options->consumer->validateSchema ? $this->schemaRegistryManager : null,
             )

@@ -8,5 +8,6 @@ use Symfony\Component\Messenger\Envelope;
 
 interface KafkaMetadataHookInterface
 {
-    public function addMetadata(Envelope $envelope): Envelope;
+    public function beforeProduce(Envelope $envelope): Envelope;
+    public function afterConsume(Envelope $envelope): Envelope;
 }

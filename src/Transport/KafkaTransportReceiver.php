@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Exoticca\KafkaMessenger\Transport;
 
 use Exoticca\KafkaMessenger\SchemaRegistry\SchemaRegistryManager;
+use Exoticca\KafkaMessenger\Transport\Metadata\KafkaMetadataHookInterface;
 use Exoticca\KafkaMessenger\Transport\Stamp\KafkaMessageStamp;
 use RdKafka\Message;
 use Symfony\Component\Messenger\Envelope;
@@ -17,6 +18,7 @@ final class KafkaTransportReceiver implements ReceiverInterface
 {
     public function __construct(
         private KafkaConnection      $connection,
+        private ?KafkaMetadataHookInterface $metadata = null,
         private ?SerializerInterface $serializer = new PhpSerializer(),
         private ?SchemaRegistryManager $schemaRegistryManager = null,
     ) {
@@ -59,6 +61,10 @@ final class KafkaTransportReceiver implements ReceiverInterface
         ];
 
         $envelope = $this->serializer->decode($messageToConvertToEnvelope);
+
+        if ($this->metadata) {
+            $envelope = $this->metadata->afterConsume($envelope);
+        }
 
         yield $envelope->with(new KafkaMessageStamp($message));
     }
