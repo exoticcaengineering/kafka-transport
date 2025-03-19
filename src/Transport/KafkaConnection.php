@@ -18,6 +18,7 @@ class KafkaConnection
 {
     private bool $consumerSubscribed = false;
     private bool $consumerMustBeRunning = false;
+    private const WILDCARD_ROUTING = '*';
     private ?KafkaConsumer $consumer;
     private ?Producer $producer;
 
@@ -66,6 +67,15 @@ class KafkaConnection
 
                     $messageFoundInRouting = false;
                     foreach ($this->generalSetting->consumer->routing as $name => $class) {
+                        if (is_null($messageIdentifier) && $name == self::WILDCARD_ROUTING) {
+                            $messageFoundInRouting = true;
+                            break;
+                        }
+
+                        if (is_null($messageIdentifier)) {
+                            break;
+                        }
+
                         if ($name == $messageIdentifier) {
                             $messageFoundInRouting = true;
                             break;
