@@ -67,7 +67,7 @@ class KafkaConnection
 
                     $messageFoundInRouting = false;
                     foreach ($this->generalSetting->consumer->routing as $name => $class) {
-                        if (is_null($messageIdentifier) && $name == self::WILDCARD_ROUTING) {
+                        if ($name == self::WILDCARD_ROUTING) {
                             $messageFoundInRouting = true;
                             break;
                         }
