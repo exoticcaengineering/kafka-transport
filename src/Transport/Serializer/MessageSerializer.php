@@ -28,6 +28,8 @@ class MessageSerializer implements SerializerInterface
     public const HEADER_EXOTICCA_PREFIX = 'X-exoticca-';
     public const HEADER_SYMFONY_PREFIX = 'X-symfony-';
 
+    public const WILDCARD = '*';
+
     private SymfonySerializerInterface $serializer;
     private string $staticMethodIdentifier;
     private array $routingMap;
@@ -47,11 +49,17 @@ class MessageSerializer implements SerializerInterface
         $stamps = $this->decodeHeaders($encodedEnvelope);
         $identifier = (string)($stamps[KafkaMessageIdentifierStamp::class] ?? null);
 
-        if (!$identifier || !isset($this->routingMap[$identifier])) {
-            throw new Exception(sprintf('Message not found in routing map or KafkaMessageIdentifierStamp missing %s', $identifier));
+        if (isset($this->routingMap[self::WILDCARD])) {
+            $routing = $this->routingMap[self::WILDCARD] ?? null;
+        } else {
+            $routing = $this->routingMap[$identifier] ?? null;
         }
 
-        $body = $this->serializer->deserialize($encodedEnvelope['body'], $this->routingMap[$identifier], 'json');
+        if (!$routing || !class_exists($routing)) {
+            throw new Exception(sprintf('No routing found for message "%s".', $routing));
+        }
+
+        $body = $this->serializer->deserialize($encodedEnvelope['body'], $routing, 'json');
 
         return new Envelope($body, $stamps);
     }
