@@ -39,7 +39,10 @@ final class KafkaTransportReceiverTest extends TestCase
             ->with([])
             ->willReturn([null]);
 
-        $this->receiver = new KafkaTransportReceiver($this->connection, $this->serializer);
+        $this->receiver = new KafkaTransportReceiver(
+            connection: $this->connection,
+            serializer: $this->serializer
+        );
 
         $result = iterator_to_array($this->receiver->get());
 
@@ -68,7 +71,10 @@ final class KafkaTransportReceiverTest extends TestCase
             ->with($messageData)
             ->willReturn($envelope);
 
-        $this->receiver = new KafkaTransportReceiver($this->connection, $this->serializer);
+        $this->receiver = new KafkaTransportReceiver(
+            connection: $this->connection,
+            serializer: $this->serializer
+        );
 
         $result = iterator_to_array($this->receiver->get());
 
@@ -105,7 +111,11 @@ final class KafkaTransportReceiverTest extends TestCase
             }))
             ->willReturn($envelope);
 
-        $this->receiver = new KafkaTransportReceiver($this->connection, $this->serializer, $this->schemaRegistryManager);
+        $this->receiver = new KafkaTransportReceiver(
+            connection: $this->connection,
+            serializer: $this->serializer,
+            schemaRegistryManager: $this->schemaRegistryManager
+        );
 
         $result = iterator_to_array($this->receiver->get());
 
@@ -124,9 +134,9 @@ final class KafkaTransportReceiverTest extends TestCase
             ->willReturn([$message]);
 
         $this->receiver = new KafkaTransportReceiver(
-            $this->connection,
-            new PhpSerializer(),
-            $this->schemaRegistryManager
+            connection: $this->connection,
+            serializer: new PhpSerializer(),
+            schemaRegistryManager:  $this->schemaRegistryManager
         );
 
         $this->expectException(TransportException::class);
@@ -153,7 +163,10 @@ final class KafkaTransportReceiverTest extends TestCase
             ->method('decode')
             ->willReturn($envelope);
 
-        $this->receiver = new KafkaTransportReceiver($this->connection, $this->serializer);
+        $this->receiver = new KafkaTransportReceiver(
+            connection: $this->connection,
+            serializer: $this->serializer
+        );
 
         $result = iterator_to_array($this->receiver->get($queueNames));
 
@@ -171,7 +184,10 @@ final class KafkaTransportReceiverTest extends TestCase
             ->method('ack')
             ->with($message);
 
-        $this->receiver = new KafkaTransportReceiver($this->connection, $this->serializer);
+        $this->receiver = new KafkaTransportReceiver(
+            connection: $this->connection,
+            serializer: $this->serializer
+        );
 
         $this->receiver->ack($envelope);
     }
@@ -187,7 +203,10 @@ final class KafkaTransportReceiverTest extends TestCase
             ->method('ack')
             ->with($message);
 
-        $this->receiver = new KafkaTransportReceiver($this->connection, $this->serializer);
+        $this->receiver = new KafkaTransportReceiver(
+            connection: $this->connection,
+            serializer: $this->serializer
+        );
 
         $this->receiver->reject($envelope);
     }

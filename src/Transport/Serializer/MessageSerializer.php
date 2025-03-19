@@ -16,6 +16,7 @@ use Symfony\Component\PropertyInfo\Extractor\PhpDocExtractor;
 use Symfony\Component\PropertyInfo\Extractor\ReflectionExtractor;
 use Symfony\Component\PropertyInfo\PropertyInfoExtractor;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
 use Symfony\Component\Serializer\Normalizer\ArrayDenormalizer;
 use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
@@ -152,11 +153,22 @@ class MessageSerializer implements SerializerInterface
 
     private function createDefaultSerializer(): SymfonySerializer
     {
-        return new SymfonySerializer([
+        return new SymfonySerializer(normalizers: [
             new DateTimeNormalizer(),
             new ArrayDenormalizer(),
-            new ObjectNormalizer(null, null, null, new PropertyInfoExtractor([], [new PhpDocExtractor(), new ReflectionExtractor()]))
-        ], [new JsonEncoder()]);
+            new ObjectNormalizer(
+                classMetadataFactory: null,
+                nameConverter: null,
+                propertyAccessor:   null,
+                propertyTypeExtractor:  new PropertyInfoExtractor(
+                    [],
+                    [new PhpDocExtractor(), new ReflectionExtractor()]
+                ),
+                defaultContext: [
+                    AbstractObjectNormalizer::DISABLE_TYPE_ENFORCEMENT => true,
+                ]
+            )
+        ], encoders: [new JsonEncoder()]);
     }
 
     public static function identifierHeaderKey(): string
