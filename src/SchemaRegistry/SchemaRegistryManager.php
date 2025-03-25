@@ -24,6 +24,10 @@ readonly class SchemaRegistryManager
 
     public function decode(Message $message): array
     {
+        if (null === $message->payload) {
+            return [];
+        }
+
         $wiredData = WireData::fromBinary($message->payload);
         $schema = Serde::parseSchema($this->httpClient->getSchema($wiredData->getSchemaId()));
 
