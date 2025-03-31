@@ -37,7 +37,7 @@ final readonly class KafkaTransportFactory implements TransportFactoryInterface
         $serializer = new MessageSerializer(
             staticMethodIdentifier: $options->staticMethodIdentifier,
             routingMap: $options->consumer->routing,
-            serializer: $options->serializer,
+            serializer: new ($options->serializer),
         );
 
         $connection = new KafkaConnection(
@@ -49,13 +49,17 @@ final readonly class KafkaTransportFactory implements TransportFactoryInterface
                 connection: $connection,
                 metadata: $this->metadata,
                 serializer: $serializer,
-                schemaRegistryManager: $options->producer->validateSchema ? $this->schemaRegistryManager : null,
+                schemaRegistryManager: ($options->producer->validateSchema)
+                    ? $this->schemaRegistryManager
+                    : null,
             ),
             receiver: new KafkaTransportReceiver(
                 connection: $connection,
                 metadata: $this->metadata,
                 serializer: $serializer,
-                schemaRegistryManager: $options->consumer->validateSchema ? $this->schemaRegistryManager : null,
+                schemaRegistryManager: ($options->consumer->validateSchema)
+                    ? $this->schemaRegistryManager
+                    : null,
             )
         );
     }
