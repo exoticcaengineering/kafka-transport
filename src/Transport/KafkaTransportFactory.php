@@ -37,7 +37,9 @@ final readonly class KafkaTransportFactory implements TransportFactoryInterface
         $serializer = new MessageSerializer(
             staticMethodIdentifier: $options->staticMethodIdentifier,
             routingMap: $options->consumer->routing,
-            serializer: new ($options->serializer),
+            serializer: ($options->serializer)
+                ? new $options->serializer
+                : null,
         );
 
         $connection = new KafkaConnection(
