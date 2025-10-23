@@ -89,6 +89,33 @@ routing:
   'Exoticca\RMS\Domain\Event\TestEvent': kafka
 ```
 
+## Security
+
+You can set your security settings in the bundle configuration.
+
+```yaml
+exoticca_kafka_messenger:
+  consumer:
+    config:
+      security.protocol: "%env(KAFKA_EVENTS_MESSENGER_TRANSPORT_SECURITY_PROTOCOL)%"
+  producer:
+    config:
+      security.protocol: "%env(KAFKA_EVENTS_MESSENGER_TRANSPORT_SECURITY_PROTOCOL)%"
+      
+when@prod:
+  exoticca_kafka_messenger:
+    consumer:
+      config:
+        sasl.mechanisms: "%env(KAFKA_EVENTS_MESSENGER_TRANSPORT_SASL_MECHANISMS)%"
+        sasl.username: "%env(KAFKA_EVENTS_MESSENGER_TRANSPORT_SASL_USERNAME)%"
+        sasl.password: "%env(KAFKA_EVENTS_MESSENGER_TRANSPORT_SASL_PASSWORD)%"
+    producer:
+      config:
+        sasl.mechanisms: "%env(KAFKA_EVENTS_MESSENGER_TRANSPORT_SASL_MECHANISMS)%"
+        sasl.username: "%env(KAFKA_EVENTS_MESSENGER_TRANSPORT_SASL_USERNAME)%"
+        sasl.password: "%env(KAFKA_EVENTS_MESSENGER_TRANSPORT_SASL_PASSWORD)%"
+```
+
 ### Execution
 To consume the message:
 ```bash
