@@ -45,7 +45,7 @@ readonly class SchemaRegistryManager
 
     }
 
-    public function encode(array $body, string $topic, ?string $messageType = null, int $version = null): string
+    public function encode(array $body, string $topic, ?string $messageType = null, ?int $version = null): string
     {
         $schema = $this->httpClient->getSubjectSchema(AvroSubject::ofValue($topic), $version);
 
