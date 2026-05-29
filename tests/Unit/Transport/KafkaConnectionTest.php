@@ -10,6 +10,7 @@ use Exoticca\KafkaMessenger\Transport\Serializer\MessageSerializer;
 use Exoticca\KafkaMessenger\Transport\Setting\ConsumerSetting;
 use Exoticca\KafkaMessenger\Transport\Setting\GeneralSetting;
 use Exoticca\KafkaMessenger\Transport\Setting\ProducerSetting;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RdKafka\KafkaConsumer;
@@ -24,6 +25,7 @@ use Symfony\Component\Messenger\Exception\TransportException;
 #[CoversClass(ProducerSetting::class)]
 #[CoversClass(GeneralSetting::class)]
 #[CoversClass(MessageSerializer::class)]
+#[AllowMockObjectsWithoutExpectations]
 class KafkaConnectionTest extends TestCase
 {
     private KafkaConnection $connection;
@@ -50,7 +52,6 @@ class KafkaConnectionTest extends TestCase
     {
         $reflection = new ReflectionClass($object);
         $property = $reflection->getProperty($propertyName);
-        $property->setAccessible(true);
         $property->setValue($object, $value);
     }
 

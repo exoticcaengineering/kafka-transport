@@ -16,6 +16,7 @@ use Exoticca\KafkaMessenger\Transport\Serializer\MessageSerializer;
 use Exoticca\KafkaMessenger\Transport\Setting\ConsumerSetting;
 use Exoticca\KafkaMessenger\Transport\Setting\GeneralSetting;
 use Exoticca\KafkaMessenger\Transport\Setting\ProducerSetting;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
@@ -29,6 +30,7 @@ use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 #[CoversClass(GeneralSetting::class)]
 #[CoversClass(ProducerSetting::class)]
 #[CoversClass(KafkaConnection::class)]
+#[AllowMockObjectsWithoutExpectations]
 final class KafkaTransportFactoryTest extends TestCase
 {
     public function test_supports_kafka_dsn(): void

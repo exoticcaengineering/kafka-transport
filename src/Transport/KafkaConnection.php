@@ -127,14 +127,16 @@ class KafkaConnection
         int      $partition,
         int      $messageFlags,
         string   $body,
-        ?string   $key = null,
+        ?string  $key = null,
         array    $headers = [],
         bool     $forceFlush = true,
-        string   $identifier = null,
-        callable $beforeProduceConvertBody = null,
+        ?string  $identifier = null,
+        ?callable $beforeProduceConvertBody = null,
     ): void {
         $producer = $this->getProducer();
-        $topicFromRouting = $this->generalSetting->producer->routing[$identifier] ?? null;
+        $topicFromRouting = null !== $identifier
+            ? $this->generalSetting->producer->routing[$identifier] ?? null
+            : null;
 
         foreach ($this->generalSetting->producer->topics as $topic) {
             if ($topicFromRouting && $topic != $topicFromRouting) {

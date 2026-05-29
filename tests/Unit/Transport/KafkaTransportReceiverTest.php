@@ -8,6 +8,7 @@ use Exoticca\KafkaMessenger\SchemaRegistry\SchemaRegistryManager;
 use Exoticca\KafkaMessenger\Transport\KafkaConnection;
 use Exoticca\KafkaMessenger\Transport\KafkaTransportReceiver;
 use Exoticca\KafkaMessenger\Transport\Stamp\KafkaMessageStamp;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RdKafka\Message;
@@ -18,6 +19,7 @@ use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 
 #[CoversClass(KafkaMessageStamp::class)]
 #[CoversClass(KafkaTransportReceiver::class)]
+#[AllowMockObjectsWithoutExpectations]
 final class KafkaTransportReceiverTest extends TestCase
 {
     private KafkaConnection $connection;

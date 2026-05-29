@@ -7,12 +7,14 @@ namespace Exoticca\KafkaMessenger\Tests\Unit\Transport;
 use Exoticca\KafkaMessenger\Transport\KafkaTransport;
 use Exoticca\KafkaMessenger\Transport\KafkaTransportReceiver;
 use Exoticca\KafkaMessenger\Transport\KafkaTransportSender;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Stamp\TransportMessageIdStamp;
 
 #[CoversClass(KafkaTransport::class)]
+#[AllowMockObjectsWithoutExpectations]
 final class KafkaTransportTest extends TestCase
 {
     private KafkaTransportSender $sender;

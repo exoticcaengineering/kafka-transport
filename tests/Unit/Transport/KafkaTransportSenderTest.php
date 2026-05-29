@@ -13,6 +13,7 @@ use Exoticca\KafkaMessenger\Transport\Stamp\KafkaForceFlushStamp;
 use Exoticca\KafkaMessenger\Transport\Stamp\KafkaMessageKeyStamp;
 use Exoticca\KafkaMessenger\Transport\Stamp\KafkaMessageStamp;
 use Exoticca\KafkaMessenger\Transport\Stamp\KafkaNoFlushStamp;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RdKafka\Message;
@@ -25,6 +26,7 @@ use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 #[CoversClass(MessageSerializer::class)]
 #[CoversClass(KafkaMessageStamp::class)]
 #[CoversClass(KafkaMessageKeyStamp::class)]
+#[AllowMockObjectsWithoutExpectations]
 final class KafkaTransportSenderTest extends TestCase
 {
     private KafkaConnection $connection;
