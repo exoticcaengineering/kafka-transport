@@ -10,6 +10,7 @@ class SettingManager
         'commit_async' => true,
         'consume_timeout_ms' => 500,
         'validate_schema' => false,
+        'dlq_topic' => null,
         'topics' => [],
         'routing' => [],
         'config' => [

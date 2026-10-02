@@ -66,6 +66,7 @@ exoticca_kafka_messenger:
 ### Explanation
 - `staticMethod`: A static method that returns a string, required in all messages to enable complex Kafka routing.
 - `validate_schema`: By default, schema validation against *Schema Registry* is disabled.
+- `dlq_topic`: Consumed messages that fail to decode are always logged as errors and acked so the consumer keeps running. If `dlq_topic` is set, the raw message is first produced to that topic with `x-dlq-*` headers (error, original topic, partition and offset). It uses the `producer` config, so set any security settings there too. Create the topic beforehand: if it doesn't exist or the produce fails, the error is logged and the message is still acked. Schema Registry errors still stop the consumer.
 - `config`: Allows adding specific Kafka configuration. See the [official documentation](https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md) for more details.
 
 ---
