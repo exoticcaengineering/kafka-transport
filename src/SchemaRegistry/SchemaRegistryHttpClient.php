@@ -2,16 +2,12 @@
 
 namespace Exoticca\KafkaMessenger\SchemaRegistry;
 
-use Avro\SchemaRegistry\AsyncClient;
-use Avro\SchemaRegistry\ClientError;
-use Avro\SchemaRegistry\Model\Error;
-use Avro\Serde;
+use Apache\Avro\Schema\AvroSchema as Schema;
 use Exoticca\KafkaMessenger\SchemaRegistry\Avro\AvroSchema;
 use Exoticca\KafkaMessenger\SchemaRegistry\Avro\AvroSubject;
-use Safe\Exceptions\JsonException;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
-class SchemaRegistryHttpClient implements AsyncClient
+class SchemaRegistryHttpClient
 {
     public const PATH_POST_SCHEMA_REGISTERED = '/subjects/%s';
     public const PATH_POST_REGISTER_SCHEMA = '/subjects/%s/versions';
@@ -47,8 +43,8 @@ class SchemaRegistryHttpClient implements AsyncClient
             );
 
             return $json['id'];
-        } catch (ClientError $e) {
-            if (in_array($e->getCode(), [Error::SUBJECT_NOT_FOUND, Error::SCHEMA_NOT_FOUND], true)) {
+        } catch (SchemaRegistryException $e) {
+            if (in_array($e->getCode(), [SchemaRegistryException::SUBJECT_NOT_FOUND, SchemaRegistryException::SCHEMA_NOT_FOUND], true)) {
                 return null;
             }
 
@@ -83,7 +79,7 @@ class SchemaRegistryHttpClient implements AsyncClient
         if ($version) {
             $json = $this->jsonRequest(
                 self::PATH_GET_SUBJECT_BY_SCHEMA_VERSION,
-                [$version]
+                [(string) $subject, $version]
             );
         } else {
             $json = $this->jsonRequest(
@@ -92,7 +88,7 @@ class SchemaRegistryHttpClient implements AsyncClient
             );
         }
 
-        $schema = Serde::parseSchema($json['schema']);
+        $schema = Schema::parse($json['schema']);
         $schemaId = $json['id'];
         $version = $json['version'];
         $subject = $json['subject'];
@@ -114,14 +110,15 @@ class SchemaRegistryHttpClient implements AsyncClient
         $raw = $response->getContent(false);
 
         try {
-            $json = \Safe\json_decode($raw, true);
-            if (Error::isError($json)) {
-                throw Error::fromResponse($json);
-            }
-
-            return $json;
-        } catch (JsonException $e) {
-            throw ClientError::jsonParseFailed($raw, $e);
+            $json = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
+        } catch (\JsonException $e) {
+            throw SchemaRegistryException::invalidJson($raw, $e);
         }
+
+        if (isset($json['error_code'])) {
+            throw SchemaRegistryException::fromResponse($json);
+        }
+
+        return $json;
     }
 }

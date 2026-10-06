@@ -1,0 +1,263 @@
+{
+  "subject": "bookings-value",
+  "version": 7,
+  "id": 100200,
+  "schema": [
+    {
+      "type": "record",
+      "name": "booking_created",
+      "namespace": "com.exoticca",
+      "fields": [
+        {
+          "name": "bookingId",
+          "type": {
+            "type": "string",
+            "logicalType": "uuid"
+          }
+        },
+        {
+          "name": "status",
+          "type": {
+            "type": "enum",
+            "name": "BookingStatus",
+            "symbols": [
+              "PENDING",
+              "CONFIRMED",
+              "CANCELLED"
+            ]
+          }
+        },
+        {
+          "name": "customer",
+          "type": {
+            "type": "record",
+            "name": "Customer",
+            "fields": [
+              {
+                "name": "id",
+                "type": "long"
+              },
+              {
+                "name": "email",
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "default": null
+              },
+              {
+                "name": "address",
+                "type": [
+                  "null",
+                  {
+                    "type": "record",
+                    "name": "Address",
+                    "fields": [
+                      {
+                        "name": "city",
+                        "type": "string"
+                      },
+                      {
+                        "name": "countryCode",
+                        "type": {
+                          "type": "fixed",
+                          "name": "CountryCode",
+                          "size": 2
+                        }
+                      }
+                    ]
+                  }
+                ],
+                "default": null
+              }
+            ]
+          }
+        },
+        {
+          "name": "previousCustomer",
+          "type": [
+            "null",
+            "Customer"
+          ],
+          "default": null
+        },
+        {
+          "name": "passengers",
+          "type": {
+            "type": "array",
+            "items": {
+              "type": "record",
+              "name": "Passenger",
+              "fields": [
+                {
+                  "name": "name",
+                  "type": "string"
+                },
+                {
+                  "name": "age",
+                  "type": [
+                    "null",
+                    "int"
+                  ],
+                  "default": null
+                },
+                {
+                  "name": "isChild",
+                  "type": "boolean",
+                  "default": false
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "extras",
+          "type": {
+            "type": "map",
+            "values": "double"
+          }
+        },
+        {
+          "name": "roomsByPassenger",
+          "type": {
+            "type": "map",
+            "values": {
+              "type": "array",
+              "items": "int"
+            }
+          },
+          "default": {}
+        },
+        {
+          "name": "payment",
+          "type": [
+            "null",
+            {
+              "type": "record",
+              "name": "CardPayment",
+              "fields": [
+                {
+                  "name": "last4",
+                  "type": "string"
+                }
+              ]
+            },
+            {
+              "type": "record",
+              "name": "TransferPayment",
+              "fields": [
+                {
+                  "name": "iban",
+                  "type": "string"
+                },
+                {
+                  "name": "reference",
+                  "type": "string"
+                }
+              ]
+            }
+          ],
+          "default": null
+        },
+        {
+          "name": "price",
+          "type": [
+            "int",
+            "long",
+            "double"
+          ]
+        },
+        {
+          "name": "tags",
+          "type": {
+            "type": "array",
+            "items": "string"
+          },
+          "default": []
+        },
+        {
+          "name": "departureDate",
+          "type": {
+            "type": "int",
+            "logicalType": "date"
+          }
+        },
+        {
+          "name": "occurredOn",
+          "type": {
+            "type": "long",
+            "logicalType": "timestamp-millis"
+          }
+        },
+        {
+          "name": "note",
+          "type": [
+            "null",
+            "string"
+          ],
+          "default": null
+        },
+        {
+          "name": "channel",
+          "type": "string",
+          "default": "web"
+        }
+      ]
+    },
+    {
+      "type": "record",
+      "name": "booking_cancelled",
+      "namespace": "com.exoticca.cancellation",
+      "fields": [
+        {
+          "name": "bookingId",
+          "type": "string"
+        },
+        {
+          "name": "customer",
+          "type": {
+            "type": "record",
+            "name": "Customer",
+            "fields": [
+              {
+                "name": "id",
+                "type": "long"
+              },
+              {
+                "name": "email",
+                "type": [
+                  "null",
+                  "string"
+                ],
+                "default": null
+              }
+            ]
+          }
+        },
+        {
+          "name": "reason",
+          "type": [
+            "null",
+            "string"
+          ],
+          "default": null
+        },
+        {
+          "name": "refund",
+          "type": [
+            "null",
+            "float"
+          ],
+          "default": null
+        },
+        {
+          "name": "occurredOn",
+          "type": {
+            "type": "long",
+            "logicalType": "timestamp-millis"
+          }
+        }
+      ]
+    }
+  ]
+}

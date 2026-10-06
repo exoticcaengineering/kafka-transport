@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace Exoticca\KafkaMessenger\Tests\Unit\Transport;
 
-use Avro\SchemaRegistry\ClientError;
-use Avro\SchemaRegistry\Model\Error;
+use Exoticca\KafkaMessenger\SchemaRegistry\SchemaRegistryException;
 use Exoticca\KafkaMessenger\SchemaRegistry\SchemaRegistryManager;
 use Exoticca\KafkaMessenger\Transport\KafkaConnection;
 use Exoticca\KafkaMessenger\Transport\KafkaTransportReceiver;
@@ -247,7 +246,9 @@ final class KafkaTransportReceiverTest extends TestCase
         $this->connection->method('get')->willReturn([$message]);
         $this->connection->expects($this->never())->method('produceToDlq');
         $this->connection->expects($this->never())->method('ack');
-        $this->schemaRegistryManager->method('decode')->willThrowException(ClientError::unknownSchemaId(1));
+        $this->schemaRegistryManager->method('decode')->willThrowException(
+            SchemaRegistryException::fromResponse(['error_code' => 50001, 'message' => 'Error in the backend data store'])
+        );
 
         $this->receiver = new KafkaTransportReceiver(
             connection: $this->connection,
@@ -255,7 +256,7 @@ final class KafkaTransportReceiverTest extends TestCase
             schemaRegistryManager: $this->schemaRegistryManager,
         );
 
-        $this->expectException(ClientError::class);
+        $this->expectException(SchemaRegistryException::class);
 
         iterator_to_array($this->receiver->get());
     }
@@ -270,7 +271,7 @@ final class KafkaTransportReceiverTest extends TestCase
         $this->connection->expects($this->once())->method('produceToDlq')->with($message);
         $this->connection->expects($this->once())->method('ack')->with($message);
         $this->schemaRegistryManager->method('decode')->willThrowException(
-            Error::fromResponse(['error_code' => Error::SCHEMA_NOT_FOUND, 'message' => 'Schema not found'])
+            SchemaRegistryException::fromResponse(['error_code' => SchemaRegistryException::SCHEMA_NOT_FOUND, 'message' => 'Schema not found'])
         );
 
         $this->receiver = new KafkaTransportReceiver(

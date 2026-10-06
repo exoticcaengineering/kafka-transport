@@ -1,0 +1,255 @@
+[
+    {
+        "name": "booking_created_full",
+        "type": "booking_created",
+        "value": {
+            "bookingId": "1b4e28ba-2fa1-11d2-883f-0016d3cca427",
+            "status": "CONFIRMED",
+            "customer": {
+                "id": 9007199254740993,
+                "email": "jane@example.com",
+                "address": {
+                    "city": "Barcelona",
+                    "countryCode": "ES"
+                }
+            },
+            "previousCustomer": {
+                "id": 1,
+                "email": null,
+                "address": null
+            },
+            "passengers": [
+                {
+                    "name": "Jane",
+                    "age": 34,
+                    "isChild": false
+                },
+                {
+                    "name": "Tim",
+                    "age": 7,
+                    "isChild": true
+                }
+            ],
+            "extras": {
+                "insurance": 49.9,
+                "transfer": 20
+            },
+            "roomsByPassenger": {
+                "Jane": [
+                    101,
+                    102
+                ],
+                "Tim": []
+            },
+            "payment": {
+                "last4": "4242"
+            },
+            "price": 1500,
+            "tags": [
+                "honeymoon",
+                "vip"
+            ],
+            "departureDate": 20819,
+            "occurredOn": 1798761600000,
+            "note": "Window seat",
+            "channel": "app"
+        },
+        "decoded": {
+            "bookingId": "1b4e28ba-2fa1-11d2-883f-0016d3cca427",
+            "status": "CONFIRMED",
+            "customer": {
+                "id": 9007199254740993,
+                "email": "jane@example.com",
+                "address": {
+                    "city": "Barcelona",
+                    "countryCode": "ES"
+                }
+            },
+            "previousCustomer": {
+                "id": 1,
+                "email": null,
+                "address": null
+            },
+            "passengers": [
+                {
+                    "name": "Jane",
+                    "age": 34,
+                    "isChild": false
+                },
+                {
+                    "name": "Tim",
+                    "age": 7,
+                    "isChild": true
+                }
+            ],
+            "extras": {
+                "insurance": 49.9,
+                "transfer": 20.0
+            },
+            "roomsByPassenger": {
+                "Jane": [
+                    101,
+                    102
+                ],
+                "Tim": []
+            },
+            "payment": {
+                "last4": "4242"
+            },
+            "price": 1500,
+            "tags": [
+                "honeymoon",
+                "vip"
+            ],
+            "departureDate": 20819,
+            "occurredOn": 1798761600000,
+            "note": "Window seat",
+            "channel": "app"
+        },
+        "legacy_payload_hex": "004831623465323862612d326661312d313164322d383833662d30303136643363636134323702828080808080802002206a616e65406578616d706c652e636f6d021242617263656c6f6e61455302020000031e084a616e650244000654696d020e0100034612696e737572616e63653333333333f34840107472616e736665720000000000003440000322084a616e650308ca01cc01000654696d000002083432343200b817031c12686f6e65796d6f6f6e0676697000a6c50280d0dee8d968021657696e646f77207365617406617070"
+    },
+    {
+        "name": "booking_created_defaults",
+        "type": "booking_created",
+        "value": {
+            "bookingId": "2c4e28ba-2fa1-11d2-883f-0016d3cca427",
+            "status": "PENDING",
+            "customer": {
+                "id": 2
+            },
+            "passengers": [
+                {
+                    "name": "Ann"
+                }
+            ],
+            "extras": [],
+            "price": 1500.75,
+            "departureDate": 0,
+            "occurredOn": 0
+        },
+        "decoded": {
+            "bookingId": "2c4e28ba-2fa1-11d2-883f-0016d3cca427",
+            "status": "PENDING",
+            "customer": {
+                "id": 2,
+                "email": null,
+                "address": null
+            },
+            "previousCustomer": null,
+            "passengers": [
+                {
+                    "name": "Ann",
+                    "age": null,
+                    "isChild": false
+                }
+            ],
+            "extras": [],
+            "roomsByPassenger": [],
+            "payment": null,
+            "price": 1500.75,
+            "tags": [],
+            "departureDate": 0,
+            "occurredOn": 0,
+            "note": null,
+            "channel": "web"
+        },
+        "legacy_payload_hex": "004832633465323862612d326661312d313164322d383833662d3030313664336363613432370004000000010c06416e6e0000000000000400000000007397400000000006776562"
+    },
+    {
+        "name": "booking_created_transfer_long_price",
+        "type": "booking_created",
+        "value": {
+            "bookingId": "3d4e28ba-2fa1-11d2-883f-0016d3cca427",
+            "status": "CANCELLED",
+            "customer": {
+                "id": -3,
+                "email": "x@y.z",
+                "address": null
+            },
+            "passengers": [],
+            "extras": {
+                "a": -1.5
+            },
+            "payment": {
+                "iban": "ES9121000418450200051332",
+                "reference": "REF-1"
+            },
+            "price": 1099511627776,
+            "departureDate": -1,
+            "occurredOn": 1
+        },
+        "decoded": {
+            "bookingId": "3d4e28ba-2fa1-11d2-883f-0016d3cca427",
+            "status": "CANCELLED",
+            "customer": {
+                "id": -3,
+                "email": "x@y.z",
+                "address": null
+            },
+            "previousCustomer": null,
+            "passengers": [],
+            "extras": {
+                "a": -1.5
+            },
+            "roomsByPassenger": [],
+            "payment": {
+                "iban": "ES9121000418450200051332",
+                "reference": "REF-1"
+            },
+            "price": 1099511627776,
+            "tags": [],
+            "departureDate": -1,
+            "occurredOn": 1,
+            "note": null,
+            "channel": "web"
+        },
+        "legacy_payload_hex": "004833643465323862612d326661312d313164322d383833662d3030313664336363613432370405020a7840792e7a00000001140261000000000000f8bf000004304553393132313030303431383435303230303035313333320a5245462d31028080808080400001020006776562"
+    },
+    {
+        "name": "booking_cancelled",
+        "type": "booking_cancelled",
+        "value": {
+            "bookingId": "1b4e28ba-2fa1-11d2-883f-0016d3cca427",
+            "customer": {
+                "id": 9007199254740993,
+                "email": "jane@example.com"
+            },
+            "reason": "Changed plans",
+            "refund": 12.5,
+            "occurredOn": 1798761600000
+        },
+        "decoded": {
+            "bookingId": "1b4e28ba-2fa1-11d2-883f-0016d3cca427",
+            "customer": {
+                "id": 9007199254740993,
+                "email": "jane@example.com"
+            },
+            "reason": "Changed plans",
+            "refund": 12.5,
+            "occurredOn": 1798761600000
+        },
+        "legacy_payload_hex": "024831623465323862612d326661312d313164322d383833662d303031366433636361343237828080808080802002206a616e65406578616d706c652e636f6d021a4368616e67656420706c616e73020000484180d0dee8d968"
+    },
+    {
+        "name": "booking_cancelled_defaults",
+        "type": "booking_cancelled",
+        "value": {
+            "bookingId": "b2",
+            "customer": {
+                "id": 5
+            },
+            "occurredOn": 1798761600000
+        },
+        "decoded": {
+            "bookingId": "b2",
+            "customer": {
+                "id": 5,
+                "email": null
+            },
+            "reason": null,
+            "refund": null,
+            "occurredOn": 1798761600000
+        },
+        "legacy_payload_hex": "020462320a00000080d0dee8d968"
+    }
+]

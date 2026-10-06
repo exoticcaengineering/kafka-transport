@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace Exoticca\KafkaMessenger\Transport;
 
-use Avro\SchemaRegistry\ClientError;
-use Avro\SchemaRegistry\Model\Error;
+use Exoticca\KafkaMessenger\SchemaRegistry\SchemaRegistryException;
 use Exoticca\KafkaMessenger\SchemaRegistry\SchemaRegistryManager;
 use Exoticca\KafkaMessenger\Transport\Metadata\KafkaMetadataHookInterface;
 use Exoticca\KafkaMessenger\Transport\Stamp\KafkaMessageStamp;
@@ -69,10 +68,10 @@ final class KafkaTransportReceiver implements ReceiverInterface
             ];
 
             $envelope = $this->serializer->decode($messageToConvertToEnvelope);
-        } catch (ClientError|HttpClientExceptionInterface $e) {
+        } catch (SchemaRegistryException|HttpClientExceptionInterface $e) {
             // Schema Registry unavailable: not the message's fault, keep failing so nothing is acked away.
             // An unknown schema id is the message's fault, though, and would fail forever.
-            if (Error::SCHEMA_NOT_FOUND !== $e->getCode()) {
+            if (SchemaRegistryException::SCHEMA_NOT_FOUND !== $e->getCode()) {
                 throw $e;
             }
             $this->handleUndecodable($message, $rawPayload, $e);

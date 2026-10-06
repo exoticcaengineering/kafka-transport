@@ -31,7 +31,7 @@ Existing solutions to integrate Kafka with Symfony Messenger present limitations
 - **Selective Message Consumption:** Allows consuming only relevant messages for the application while efficiently discarding the rest.
 - **Enhanced Traceability:** Supports defining custom headers generically for any message.
 - **Optional Schema Validation:** Integrates with *Schema Registry* using Apache Avro, allowing selective validation by transport.
-- **Apache Union Schema Compatibility:** Thanks to enhancements on the reference library [avro-php](https://gitlab.com/Jaumo/avro-php).
+- **Apache Union Schema Compatibility:** Union schemas are encoded picking the branch named after the message identifier, on top of the official [apache/avro](https://github.com/apache/avro/tree/main/lang/php) library.
 
 ---
 
@@ -89,6 +89,21 @@ kafka:
 routing:
   'Exoticca\RMS\Domain\Event\TestEvent': kafka
 ```
+
+## Schema Registry
+
+When `validate_schema` is enabled, messages are encoded/decoded with Avro using the schemas in the *Schema Registry*.
+
+```yaml
+exoticca_kafka_messenger:
+  schema_registry:
+    base_uri: '%env(SCHEMA_REGISTRY_URL)%'
+    api_key: '%env(SCHEMA_REGISTRY_API_KEY)%'
+    api_secret: '%env(SCHEMA_REGISTRY_API_SECRET)%'
+    latest_schema_ttl: 300
+```
+
+Schemas are cached in memory for the lifetime of the process, so the registry is only called the first time a schema is needed. Schemas looked up by id (consumer) or by subject version (`KafkaMessageVersionStamp`) never change, so they're cached forever. The latest schema of a subject (producer) is fetched again after `latest_schema_ttl` seconds, so new schema versions are picked up without restarting.
 
 ## Security
 
@@ -151,5 +166,5 @@ complex_transport:
 ---
 
 ## Acknowledgments
-Special thanks to the [avro-php](https://gitlab.com/Jaumo/avro-php) library for facilitating integration with Apache Avro.
+Special thanks to the [avro-php](https://gitlab.com/Jaumo/avro-php) library, which this bundle was built on until it was abandoned.
 
