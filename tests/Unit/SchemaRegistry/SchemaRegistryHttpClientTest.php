@@ -86,6 +86,25 @@ class SchemaRegistryHttpClientTest extends TestCase
         $this->assertEquals($avroSchema, AvroSchemaMother::unionType());
     }
 
+    public function test_get_subject_schema_by_version(): void
+    {
+        $response = json_decode(\Safe\file_get_contents(__DIR__.'/../../Fixtures/schema_union.json'), true);
+        $response["schema"] = json_encode($response["schema"]);
+        $client = new SchemaRegistryHttpClient(
+            'http://schema-registry.local',
+            'test_key',
+            'test_secret',
+            new MockHttpClient(function (string $method, string $url) use ($response) {
+                $this->assertSame('http://schema-registry.local/subjects/subject-value/versions/2', $url);
+
+                return new MockResponse(json_encode($response));
+            })
+        );
+
+        $avroSchema = $client->getSubjectSchema(AvroSubject::ofValue('subject'), 2);
+        $this->assertEquals(AvroSchemaMother::unionType(), $avroSchema);
+    }
+
     public function test_get_registered_schema_id_with_not_found(): void
     {
         $responseBody = json_encode([

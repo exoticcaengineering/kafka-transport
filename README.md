@@ -90,6 +90,21 @@ routing:
   'Exoticca\RMS\Domain\Event\TestEvent': kafka
 ```
 
+## Schema Registry
+
+When `validate_schema` is enabled, messages are encoded/decoded with Avro using the schemas in the *Schema Registry*.
+
+```yaml
+exoticca_kafka_messenger:
+  schema_registry:
+    base_uri: '%env(SCHEMA_REGISTRY_URL)%'
+    api_key: '%env(SCHEMA_REGISTRY_API_KEY)%'
+    api_secret: '%env(SCHEMA_REGISTRY_API_SECRET)%'
+    latest_schema_ttl: 300
+```
+
+Schemas are cached in memory for the lifetime of the process, so the registry is only called the first time a schema is needed. Schemas looked up by id (consumer) or by subject version (`KafkaMessageVersionStamp`) never change, so they're cached forever. The latest schema of a subject (producer) is fetched again after `latest_schema_ttl` seconds, so new schema versions are picked up without restarting.
+
 ## Security
 
 You can set your security settings in the bundle configuration.

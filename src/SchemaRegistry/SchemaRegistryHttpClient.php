@@ -83,7 +83,7 @@ class SchemaRegistryHttpClient implements AsyncClient
         if ($version) {
             $json = $this->jsonRequest(
                 self::PATH_GET_SUBJECT_BY_SCHEMA_VERSION,
-                [$version]
+                [(string) $subject, $version]
             );
         } else {
             $json = $this->jsonRequest(
