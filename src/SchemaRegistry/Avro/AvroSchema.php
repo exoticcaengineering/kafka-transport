@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Exoticca\KafkaMessenger\SchemaRegistry\Avro;
 
-use Avro\Model\Schema\Schema;
+use Apache\Avro\Schema\AvroSchema as Schema;
 
 class AvroSchema
 {

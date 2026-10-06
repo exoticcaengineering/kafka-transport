@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace Exoticca\KafkaMessenger\Tests\Unit\SchemaRegistry;
 
-use Avro\SchemaRegistry\ClientError;
-use Avro\SchemaRegistry\Model\Error;
 use Exoticca\KafkaMessenger\SchemaRegistry\Avro\AvroSchema;
 use Exoticca\KafkaMessenger\SchemaRegistry\Avro\AvroSubject;
+use Exoticca\KafkaMessenger\SchemaRegistry\SchemaRegistryException;
 use Exoticca\KafkaMessenger\SchemaRegistry\SchemaRegistryHttpClient;
 use Exoticca\KafkaMessenger\Tests\ObjectMother\AvroSchemaMother;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -18,6 +17,7 @@ use Symfony\Component\HttpClient\Response\MockResponse;
 #[CoversClass(SchemaRegistryHttpClient::class)]
 #[CoversClass(AvroSubject::class)]
 #[CoversClass(AvroSchema::class)]
+#[CoversClass(SchemaRegistryException::class)]
 class SchemaRegistryHttpClientTest extends TestCase
 {
     private array $credentials;
@@ -76,7 +76,7 @@ class SchemaRegistryHttpClientTest extends TestCase
 
     public function test_get_subject_schema(): void
     {
-        $response = json_decode(\Safe\file_get_contents(__DIR__.'/../../Fixtures/schema_union.json'), true);
+        $response = json_decode(file_get_contents(__DIR__.'/../../Fixtures/schema_union.json'), true);
         $response["schema"] = json_encode($response["schema"]);
         $response = new MockResponse(json_encode($response));
         $client = $this->registryWithCustomResponse($response);
@@ -86,10 +86,41 @@ class SchemaRegistryHttpClientTest extends TestCase
         $this->assertEquals($avroSchema, AvroSchemaMother::unionType());
     }
 
+    public function test_get_subject_schema_by_version(): void
+    {
+        $response = json_decode(file_get_contents(__DIR__.'/../../Fixtures/schema_union.json'), true);
+        $response["schema"] = json_encode($response["schema"]);
+        $client = new SchemaRegistryHttpClient(
+            'http://schema-registry.local',
+            'test_key',
+            'test_secret',
+            new MockHttpClient(function (string $method, string $url) use ($response) {
+                $this->assertSame('http://schema-registry.local/subjects/subject-value/versions/2', $url);
+
+                return new MockResponse(json_encode($response));
+            })
+        );
+
+        $avroSchema = $client->getSubjectSchema(AvroSubject::ofValue('subject'), 2);
+        $this->assertEquals(AvroSchemaMother::unionType(), $avroSchema);
+    }
+
+    public function test_error_response_throws_with_registry_error_code(): void
+    {
+        $client = $this->registryWithCustomResponse(new MockResponse(json_encode([
+            'error_code' => SchemaRegistryException::SCHEMA_NOT_FOUND,
+            'message' => 'Schema 1 not found',
+        ]), ['http_code' => 404]));
+
+        $this->expectException(SchemaRegistryException::class);
+        $this->expectExceptionCode(SchemaRegistryException::SCHEMA_NOT_FOUND);
+        $client->getSchema(1);
+    }
+
     public function test_get_registered_schema_id_with_not_found(): void
     {
         $responseBody = json_encode([
-            'error_code' => Error::SUBJECT_NOT_FOUND,
+            'error_code' => SchemaRegistryException::SUBJECT_NOT_FOUND,
             'message' => 'Subject not found',
         ]);
 
@@ -105,7 +136,7 @@ class SchemaRegistryHttpClientTest extends TestCase
 
     public function test_json_request_with_invalid_json_response(): void
     {
-        $this->expectException(ClientError::class);
+        $this->expectException(SchemaRegistryException::class);
         $response = new MockResponse('invalid_json');
         $client = $this->registryWithCustomResponse($response);
         $client->getSchema(100091);
