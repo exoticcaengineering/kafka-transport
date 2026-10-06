@@ -164,6 +164,47 @@ class KafkaConnection
         }
     }
 
+    /**
+     * Sends the raw message to the configured DLQ topic. Returns the topic, or null when no DLQ is configured.
+     *
+     * @throws TransportException when the topic doesn't exist or the message can't be flushed
+     */
+    public function produceToDlq(Message $message, \Throwable $error): ?string
+    {
+        $dlqTopic = $this->generalSetting->consumer->dlqTopic;
+        if (null === $dlqTopic) {
+            return null;
+        }
+
+        $producer = $this->getProducer();
+        $topic = $producer->newTopic($dlqTopic);
+
+        // Without a delivery callback a message to a missing topic is silently dropped, and flush() still succeeds.
+        // ponytail: one metadata request per undecodable message, cache it if bad messages ever get frequent.
+        foreach ($producer->getMetadata(false, $topic, $this->generalSetting->producer->flushTimeoutMs)->getTopics() as $metadataTopic) {
+            if (RD_KAFKA_RESP_ERR_NO_ERROR !== $metadataTopic->getErr()) {
+                throw new TransportException(sprintf('DLQ topic "%s" does not exist', $dlqTopic), $metadataTopic->getErr());
+            }
+        }
+
+        $topic->producev(
+            RD_KAFKA_PARTITION_UA,
+            0,
+            $message->payload,
+            $message->key,
+            [
+                ...($message->headers ?? []),
+                'x-dlq-error' => $error->getMessage(),
+                'x-dlq-original-topic' => (string) $message->topic_name,
+                'x-dlq-original-partition' => (string) $message->partition,
+                'x-dlq-original-offset' => (string) $message->offset,
+            ],
+        );
+        $this->flush();
+
+        return $dlqTopic;
+    }
+
     public function flush(): void
     {
         for ($flushRetries = 0; $flushRetries < 10; ++$flushRetries) {

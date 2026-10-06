@@ -93,6 +93,7 @@ final class KafkaTransportSettingResolver
             consumeTimeout: $consumerOptions['consume_timeout_ms'],
             commitAsync: $consumerOptions['commit_async'],
             validateSchema: $consumerOptions['validate_schema'],
+            dlqTopic: $consumerOptions['dlq_topic'],
         );
 
         $producerConfig = new ProducerSetting(

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Exoticca\KafkaMessenger\Tests\Unit\Transport;
 
+use Avro\SchemaRegistry\ClientError;
+use Avro\SchemaRegistry\Model\Error;
 use Exoticca\KafkaMessenger\SchemaRegistry\SchemaRegistryManager;
 use Exoticca\KafkaMessenger\Transport\KafkaConnection;
 use Exoticca\KafkaMessenger\Transport\KafkaTransportReceiver;
@@ -11,6 +13,7 @@ use Exoticca\KafkaMessenger\Transport\Stamp\KafkaMessageStamp;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 use RdKafka\Message;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\TransportException;
@@ -145,6 +148,138 @@ final class KafkaTransportReceiverTest extends TestCase
         $this->expectExceptionMessage('Schema registry is enabled but the defined serializer is not compatible with it.');
 
         iterator_to_array($this->receiver->get());
+    }
+
+    public function test_get_with_undecodable_message_sends_to_dlq_acks_and_continues(): void
+    {
+        $bad = new Message();
+        $bad->payload = '{"data":"bad"}';
+        $bad->headers = [];
+        $good = new Message();
+        $good->payload = '{"data":"good"}';
+        $good->headers = [];
+
+        $this->connection->method('get')->willReturn([$bad, $good]);
+        $this->connection->expects($this->once())->method('produceToDlq')->with($bad);
+        $this->connection->expects($this->once())->method('ack')->with($bad);
+        $this->serializer->method('decode')->willReturnCallback(
+            fn (array $encoded) => $encoded['body'] === $bad->payload
+                ? throw new \RuntimeException('bad payload')
+                : new Envelope(new \stdClass())
+        );
+
+        $this->receiver = new KafkaTransportReceiver(
+            connection: $this->connection,
+            serializer: $this->serializer,
+        );
+
+        $result = iterator_to_array($this->receiver->get(), false);
+
+        $this->assertCount(1, $result);
+        $this->assertSame($good, $result[0]->last(KafkaMessageStamp::class)->message());
+    }
+
+    public function test_undecodable_message_log_includes_location_and_format(): void
+    {
+        $message = new Message();
+        $message->payload = "\0\0\0\0\x2Aavro";
+        $message->headers = [];
+        $message->topic_name = 'some.topic';
+        $message->partition = 3;
+        $message->offset = 42;
+
+        $this->connection->method('get')->willReturn([$message]);
+        $this->schemaRegistryManager->method('decode')->willThrowException(new \RuntimeException('bad avro'));
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('error')->with(
+            $this->anything(),
+            $this->callback(fn (array $context) => 'some.topic' === $context['topic']
+                && 3 === $context['partition']
+                && 42 === $context['offset']
+                && 'avro(schema_id=42)' === $context['format']
+                && 'enabled' === $context['schema_registry']
+                && \RuntimeException::class === $context['error_class'])
+        );
+
+        $this->receiver = new KafkaTransportReceiver(
+            connection: $this->connection,
+            serializer: $this->serializer,
+            schemaRegistryManager: $this->schemaRegistryManager,
+            logger: $logger,
+        );
+
+        iterator_to_array($this->receiver->get());
+    }
+
+    public function test_dlq_failure_is_logged_and_message_still_acked(): void
+    {
+        $message = new Message();
+        $message->payload = 'bad';
+        $message->headers = [];
+
+        $this->connection->method('get')->willReturn([$message]);
+        $this->connection->method('produceToDlq')->willThrowException(new TransportException('DLQ topic "x" does not exist'));
+        $this->connection->expects($this->once())->method('ack')->with($message);
+        $this->serializer->method('decode')->willThrowException(new \RuntimeException('bad payload'));
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('error')->with(
+            $this->anything(),
+            $this->callback(fn (array $context) => 'failed (DLQ topic "x" does not exist)' === $context['dlq_topic'])
+        );
+
+        $this->receiver = new KafkaTransportReceiver(
+            connection: $this->connection,
+            serializer: $this->serializer,
+            logger: $logger,
+        );
+
+        $this->assertEmpty(iterator_to_array($this->receiver->get()));
+    }
+
+    public function test_get_with_schema_registry_error_throws_without_ack(): void
+    {
+        $message = new Message();
+        $message->payload = 'avro';
+        $message->headers = [];
+
+        $this->connection->method('get')->willReturn([$message]);
+        $this->connection->expects($this->never())->method('produceToDlq');
+        $this->connection->expects($this->never())->method('ack');
+        $this->schemaRegistryManager->method('decode')->willThrowException(ClientError::unknownSchemaId(1));
+
+        $this->receiver = new KafkaTransportReceiver(
+            connection: $this->connection,
+            serializer: $this->serializer,
+            schemaRegistryManager: $this->schemaRegistryManager,
+        );
+
+        $this->expectException(ClientError::class);
+
+        iterator_to_array($this->receiver->get());
+    }
+
+    public function test_get_with_unknown_schema_id_sends_to_dlq_and_acks(): void
+    {
+        $message = new Message();
+        $message->payload = 'avro';
+        $message->headers = [];
+
+        $this->connection->method('get')->willReturn([$message]);
+        $this->connection->expects($this->once())->method('produceToDlq')->with($message);
+        $this->connection->expects($this->once())->method('ack')->with($message);
+        $this->schemaRegistryManager->method('decode')->willThrowException(
+            Error::fromResponse(['error_code' => Error::SCHEMA_NOT_FOUND, 'message' => 'Schema not found'])
+        );
+
+        $this->receiver = new KafkaTransportReceiver(
+            connection: $this->connection,
+            serializer: $this->serializer,
+            schemaRegistryManager: $this->schemaRegistryManager,
+        );
+
+        $this->assertEmpty(iterator_to_array($this->receiver->get()));
     }
 
     public function test_get_with_specific_queues(): void

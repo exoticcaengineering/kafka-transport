@@ -13,6 +13,7 @@ use Exoticca\KafkaMessenger\Transport\Metadata\KafkaMetadataHookInterface;
 use Exoticca\KafkaMessenger\Transport\Setting\SettingManager;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
@@ -41,6 +42,10 @@ class ExoticcaKafkaBundle extends AbstractBundle
                         ->booleanNode('validate_schema')
                             ->defaultFalse()
                             ->info('Enable or disable schema validation for consumers')
+                        ->end()
+                        ->scalarNode('dlq_topic')
+                            ->defaultNull()
+                            ->info('Topic where messages that fail to decode are sent')
                         ->end()
                         ->booleanNode('commit_async')
                             ->defaultTrue()
@@ -118,7 +123,8 @@ class ExoticcaKafkaBundle extends AbstractBundle
                 new Reference(KafkaTransportSettingResolver::class),
                 new Reference(SchemaRegistryManager::class),
                 null,
-                null
+                null,
+                new Reference('logger', ContainerInterface::NULL_ON_INVALID_REFERENCE),
             ])
             ->tag('messenger.transport_factory');
 

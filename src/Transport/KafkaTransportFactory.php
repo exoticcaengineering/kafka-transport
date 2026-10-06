@@ -6,6 +6,7 @@ namespace Exoticca\KafkaMessenger\Transport;
 
 use Exoticca\KafkaMessenger\SchemaRegistry\SchemaRegistryManager;
 use Exoticca\KafkaMessenger\Transport\Metadata\KafkaMetadataHookInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 use Symfony\Component\Messenger\Transport\TransportFactoryInterface;
 use Symfony\Component\Messenger\Transport\TransportInterface;
@@ -17,17 +18,20 @@ final readonly class KafkaTransportFactory implements TransportFactoryInterface
     private ?array $globalConfig;
     private SchemaRegistryManager $schemaRegistryManager;
     private ?KafkaMetadataHookInterface $metadata;
+    private ?LoggerInterface $logger;
 
     public function __construct(
         KafkaTransportSettingResolver $configuration,
         SchemaRegistryManager         $schemaRegistryManager,
         ?KafkaMetadataHookInterface   $metadata = null,
         ?array                        $globalConfig = null,
+        ?LoggerInterface              $logger = null,
     ) {
         $this->configuration = $configuration;
         $this->globalConfig = $globalConfig;
         $this->schemaRegistryManager = $schemaRegistryManager;
         $this->metadata = $metadata;
+        $this->logger = $logger;
     }
 
     public function createTransport(string $dsn, array $options, SerializerInterface $serializer): TransportInterface
@@ -62,6 +66,7 @@ final readonly class KafkaTransportFactory implements TransportFactoryInterface
                 schemaRegistryManager: ($options->consumer->validateSchema)
                     ? $this->schemaRegistryManager
                     : null,
+                logger: $this->logger,
             )
         );
     }

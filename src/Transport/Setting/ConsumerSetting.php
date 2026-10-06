@@ -18,6 +18,7 @@ final readonly class ConsumerSetting
         public int $consumeTimeout = 500,
         public bool $commitAsync = true,
         public bool $validateSchema = false,
+        public ?string $dlqTopic = null,
     ) {
     }
 }
