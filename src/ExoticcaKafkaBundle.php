@@ -99,6 +99,11 @@ class ExoticcaKafkaBundle extends AbstractBundle
                             ->defaultNull()
                             ->info('API Secret of the Schema Registry')
                         ->end()
+                        ->integerNode('latest_schema_ttl')
+                            ->defaultValue(300)
+                            ->min(0)
+                            ->info('Seconds the latest schema of a subject is cached before fetching it again')
+                        ->end()
                     ->end()
                 ->end()
                 ->scalarNode('serializer')
@@ -132,7 +137,8 @@ class ExoticcaKafkaBundle extends AbstractBundle
             ->set(SchemaRegistryManager::class)
             ->args(
                 [
-                    new Reference(SchemaRegistryHttpClient::class)
+                    new Reference(SchemaRegistryHttpClient::class),
+                    $config['schema_registry']['latest_schema_ttl'],
                 ]
             )->tag('exoticca.kafka.transport.schema_registry_manager');
 

@@ -12,6 +12,7 @@ use Exoticca\KafkaMessenger\Transport\Serializer\MessageSerializer;
 use Exoticca\KafkaMessenger\Transport\Stamp\KafkaForceFlushStamp;
 use Exoticca\KafkaMessenger\Transport\Stamp\KafkaMessageKeyStamp;
 use Exoticca\KafkaMessenger\Transport\Stamp\KafkaMessageStamp;
+use Exoticca\KafkaMessenger\Transport\Stamp\KafkaMessageVersionStamp;
 use Exoticca\KafkaMessenger\Transport\Stamp\KafkaNoFlushStamp;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -97,6 +98,39 @@ final class KafkaTransportSenderTest extends TestCase
 
         $this->expectException(TransportException::class);
         $this->expectExceptionMessage('Schema registry is enabled but the defined serializer is not compatible with it.');
+
+        $this->sender->send($envelope);
+    }
+
+    public function test_send_with_version_stamp_encodes_with_target_version(): void
+    {
+        $envelope = new Envelope(new \stdClass(), [new KafkaMessageVersionStamp(3)]);
+        $encodedEnvelope = [
+            'body' => '{"id":1}',
+            'headers' => [
+                MessageSerializer::identifierHeaderKey() => 'message_type'
+            ]
+        ];
+
+        $this->serializer->method('encode')->willReturn($encodedEnvelope);
+
+        $this->schemaRegistryManager->expects($this->once())
+            ->method('encode')
+            ->with(['id' => 1], 'topic', 'message_type', 3)
+            ->willReturn('avro_body');
+
+        $this->connection->expects($this->once())
+            ->method('produce')
+            ->willReturnCallback(function (...$args): void {
+                $this->assertSame('avro_body', $args[7]('topic'));
+            });
+
+        $this->sender = new KafkaTransportSender(
+            $this->connection,
+            null,
+            $this->serializer,
+            $this->schemaRegistryManager
+        );
 
         $this->sender->send($envelope);
     }
