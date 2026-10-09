@@ -90,6 +90,18 @@ routing:
   'Exoticca\RMS\Domain\Event\TestEvent': kafka
 ```
 
+### Cooperative rebalancing
+
+By default a rebalance revokes every partition from every consumer of the group, so the whole group stops until all members rejoin. With a cooperative strategy only the partitions that move change hands, and the rest keep being consumed:
+
+```yaml
+    consumer:
+      config:
+        partition.assignment.strategy: 'cooperative-sticky'
+```
+
+A group can't mix eager and cooperative members, so switching an existing group needs all its consumers stopped first (scale to 0, deploy, scale up).
+
 ## Schema Registry
 
 When `validate_schema` is enabled, messages are encoded/decoded with Avro using the schemas in the *Schema Registry*.

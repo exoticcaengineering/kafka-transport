@@ -240,28 +240,39 @@ class KafkaConnection
     private function createConsumer(array $kafkaConfig): KafkaConsumer
     {
         $conf = $this->getBaseConf();
-        $conf->setRebalanceCb(function (KafkaConsumer $kafka, $err, ?array $partitions = null) {
-            switch ($err) {
-                case RD_KAFKA_RESP_ERR__ASSIGN_PARTITIONS:
-                    $kafka->assign($partitions);
-
-                    break;
-
-                case RD_KAFKA_RESP_ERR__REVOKE_PARTITIONS:
-                    $kafka->assign(null);
-
-                    break;
-
-                default:
-                    throw new Exception($err);
-            }
-        });
+        // php-rdkafka 6.0 has no getRebalanceProtocol(), so take the protocol from the configured strategy
+        $cooperative = str_contains((string) ($kafkaConfig['partition.assignment.strategy'] ?? ''), 'cooperative');
+        $conf->setRebalanceCb(
+            fn (KafkaConsumer $kafka, $err, ?array $partitions = null) => $this->rebalance($kafka, $err, $partitions, $cooperative),
+        );
 
         foreach ($kafkaConfig as $key => $value) {
             $conf->set($key, $value);
         }
 
         return new KafkaConsumer($conf);
+    }
+
+    /**
+     * Eager protocols revoke and reassign every partition on each rebalance. Cooperative ones only
+     * hand over the partitions that move, so the rest keep being consumed during the rebalance.
+     */
+    private function rebalance(KafkaConsumer $kafka, int $err, ?array $partitions, bool $cooperative): void
+    {
+        switch ($err) {
+            case RD_KAFKA_RESP_ERR__ASSIGN_PARTITIONS:
+                $cooperative ? $kafka->incrementalAssign($partitions) : $kafka->assign($partitions);
+
+                break;
+
+            case RD_KAFKA_RESP_ERR__REVOKE_PARTITIONS:
+                $cooperative ? $kafka->incrementalUnassign($partitions) : $kafka->assign(null);
+
+                break;
+
+            default:
+                throw new Exception($err);
+        }
     }
 
     /**
