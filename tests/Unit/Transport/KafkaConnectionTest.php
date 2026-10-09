@@ -17,7 +17,9 @@ use RdKafka\KafkaConsumer;
 use RdKafka\Message;
 use RdKafka\Producer;
 use RdKafka\ProducerTopic;
+use RdKafka\TopicPartition;
 use ReflectionClass;
+use ReflectionMethod;
 use Symfony\Component\Messenger\Exception\TransportException;
 
 #[CoversClass(KafkaConnection::class)]
@@ -305,6 +307,38 @@ class KafkaConnectionTest extends TestCase
         $this->injectMockConsumer();
 
         $this->connection->ack($message);
+    }
+
+    public function test_eager_rebalance_reassigns_all_partitions(): void
+    {
+        $partitions = [new TopicPartition('test_topic', 0), new TopicPartition('test_topic', 1)];
+
+        $this->consumer->expects($this->exactly(2))
+            ->method('assign')
+            ->with($this->callback(fn (?array $assigned) => in_array($assigned, [$partitions, null], true)));
+        $this->consumer->expects($this->never())->method('incrementalAssign');
+        $this->consumer->expects($this->never())->method('incrementalUnassign');
+
+        $this->rebalance(RD_KAFKA_RESP_ERR__ASSIGN_PARTITIONS, $partitions, cooperative: false);
+        $this->rebalance(RD_KAFKA_RESP_ERR__REVOKE_PARTITIONS, $partitions, cooperative: false);
+    }
+
+    public function test_cooperative_rebalance_only_moves_the_given_partitions(): void
+    {
+        $partitions = [new TopicPartition('test_topic', 1)];
+
+        $this->consumer->expects($this->once())->method('incrementalAssign')->with($partitions);
+        $this->consumer->expects($this->once())->method('incrementalUnassign')->with($partitions);
+        $this->consumer->expects($this->never())->method('assign');
+
+        $this->rebalance(RD_KAFKA_RESP_ERR__ASSIGN_PARTITIONS, $partitions, cooperative: true);
+        $this->rebalance(RD_KAFKA_RESP_ERR__REVOKE_PARTITIONS, $partitions, cooperative: true);
+    }
+
+    private function rebalance(int $err, array $partitions, bool $cooperative): void
+    {
+        (new ReflectionMethod($this->connection, 'rebalance'))
+            ->invoke($this->connection, $this->consumer, $err, $partitions, $cooperative);
     }
 
     private function createConfiguredMessage(int $err = 0, array $headers = []): Message
