@@ -217,6 +217,9 @@ final class KafkaTransportReceiverTest extends TestCase
         $message = new Message();
         $message->payload = 'bad';
         $message->headers = [];
+        $message->topic_name = 'some.topic';
+        $message->partition = 0;
+        $message->offset = 1;
 
         $this->connection->method('get')->willReturn([$message]);
         $this->connection->method('produceToDlq')->willThrowException(new TransportException('DLQ topic "x" does not exist'));
