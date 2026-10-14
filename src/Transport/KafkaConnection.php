@@ -23,11 +23,13 @@ class KafkaConnection
     private ?Producer $producer;
 
     private SignalRegistry $signalRegistry;
+    private KafkaDeliveryReports $deliveryReports;
 
     public function __construct(
         private readonly GeneralSetting      $generalSetting,
     ) {
         $this->signalRegistry = new SignalRegistry();
+        $this->deliveryReports = new KafkaDeliveryReports();
     }
 
 
@@ -179,7 +181,7 @@ class KafkaConnection
         $producer = $this->getProducer();
         $topic = $producer->newTopic($dlqTopic);
 
-        // Without a delivery callback a message to a missing topic is silently dropped, and flush() still succeeds.
+        // Fail before producing, so a missing DLQ topic is reported as such and not as a failed delivery.
         // ponytail: one metadata request per undecodable message, cache it if bad messages ever get frequent.
         foreach ($producer->getMetadata(false, $topic, $this->generalSetting->producer->flushTimeoutMs)->getTopics() as $metadataTopic) {
             if (RD_KAFKA_RESP_ERR_NO_ERROR !== $metadataTopic->getErr()) {
@@ -205,6 +207,12 @@ class KafkaConnection
         return $dlqTopic;
     }
 
+    /**
+     * Also throws when a message produced since the last flush was rejected by the broker,
+     * including the ones sent with KafkaNoFlushStamp.
+     *
+     * @throws TransportException
+     */
     public function flush(): void
     {
         for ($flushRetries = 0; $flushRetries < 10; ++$flushRetries) {
@@ -218,6 +226,8 @@ class KafkaConnection
         if (RD_KAFKA_RESP_ERR_NO_ERROR !== $result) {
             throw new TransportException('Was unable to flush, messages might be lost!: '.$result, $result);
         }
+
+        $this->deliveryReports->throwIfAnyFailed();
     }
 
     private function getConsumer(): KafkaConsumer
@@ -281,6 +291,7 @@ class KafkaConnection
     private function createProducer(array $kafkaConfig): Producer
     {
         $conf = $this->getBaseConf();
+        $conf->setDrMsgCb(fn (Producer $producer, Message $message) => $this->deliveryReports->record($message));
 
         foreach ($kafkaConfig as $key => $value) {
             $conf->set($key, $value);
