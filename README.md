@@ -111,6 +111,12 @@ A group can't mix eager and cooperative members, so switching an existing group 
 >     stop_worker_on_signals: [2, 3, 15] # SIGINT, SIGQUIT, SIGTERM
 > ```
 
+### Delivery errors
+
+Sending a message flushes the producer and checks the delivery report of every message produced since the last flush. If the broker rejected any of them (the topic doesn't exist and auto-creation is disabled, missing ACLs, message too large, authentication errors...), the send throws a `TransportException` with the error and the topic, so Messenger doesn't acknowledge the message and it can be retried. If the broker is unreachable, the flush times out and throws too.
+
+Messages sent with `KafkaNoFlushStamp` aren't flushed, so their errors are reported on the next flush instead: the next send without the stamp (or with `KafkaForceFlushStamp`). Always end a batch of no-flush messages with a flushed one, otherwise their errors are never reported.
+
 ## Schema Registry
 
 When `validate_schema` is enabled, messages are encoded/decoded with Avro using the schemas in the *Schema Registry*.
