@@ -67,7 +67,7 @@ class KafkaConnectionTest extends TestCase
 
         $this->producer->expects($this->exactly(2))
             ->method('poll')
-            ->with(10000);
+            ->with(0);
 
         $this->producer->expects($this->once())
             ->method('flush')
@@ -103,7 +103,7 @@ class KafkaConnectionTest extends TestCase
 
         $this->producer->expects($this->once())
             ->method('poll')
-            ->with(10000);
+            ->with(0);
 
         $this->producer->expects($this->once())
             ->method('flush')
@@ -151,7 +151,7 @@ class KafkaConnectionTest extends TestCase
 
         $this->producer->expects($this->exactly(2))
             ->method('poll')
-            ->with(10000);
+            ->with(0);
 
         $this->producer->expects($this->once())
             ->method('flush')

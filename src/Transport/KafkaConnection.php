@@ -158,7 +158,7 @@ class KafkaConnection
                 $headers,
             );
 
-            $producer->poll($this->generalSetting->producer->flushTimeoutMs);
+            $producer->poll($this->generalSetting->producer->pollTimeoutMs);
         }
 
         if ($forceFlush) {
