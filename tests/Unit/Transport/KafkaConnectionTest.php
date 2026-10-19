@@ -6,6 +6,7 @@ namespace Exoticca\KafkaMessenger\Tests\Unit\Transport;
 
 use Exoticca\KafkaMessenger\Tests\ObjectMother\GeneralSettingMother;
 use Exoticca\KafkaMessenger\Transport\KafkaConnection;
+use Exoticca\KafkaMessenger\Transport\KafkaDeliveryReports;
 use Exoticca\KafkaMessenger\Transport\Serializer\MessageSerializer;
 use Exoticca\KafkaMessenger\Transport\Setting\ConsumerSetting;
 use Exoticca\KafkaMessenger\Transport\Setting\GeneralSetting;
@@ -23,6 +24,7 @@ use ReflectionMethod;
 use Symfony\Component\Messenger\Exception\TransportException;
 
 #[CoversClass(KafkaConnection::class)]
+#[CoversClass(KafkaDeliveryReports::class)]
 #[CoversClass(ConsumerSetting::class)]
 #[CoversClass(ProducerSetting::class)]
 #[CoversClass(GeneralSetting::class)]
@@ -204,6 +206,66 @@ class KafkaConnectionTest extends TestCase
         $this->connection->flush();
     }
 
+    public function test_produce_does_not_throw_when_delivery_succeeds(): void
+    {
+        $this->producer->method('newTopic')->willReturn($this->producerTopic);
+        $this->producer->method('poll')->willReturnCallback(function () {
+            $this->deliveryReport(\RD_KAFKA_RESP_ERR_NO_ERROR, 'test-topic-1');
+
+            return 1;
+        });
+        $this->producer->expects($this->once())
+            ->method('flush')
+            ->willReturn(\RD_KAFKA_RESP_ERR_NO_ERROR);
+
+        $this->injectMockProducer();
+
+        $this->connection->produce(0, 0, 'test-body', identifier: 'test.message');
+    }
+
+    public function test_produce_throws_when_broker_rejects_the_message(): void
+    {
+        $this->producer->method('newTopic')->willReturn($this->producerTopic);
+        // flush() drains the queue fine, the error is only in the delivery report
+        $this->producer->expects($this->once())
+            ->method('flush')
+            ->willReturnCallback(function () {
+                $this->deliveryReport(\RD_KAFKA_RESP_ERR_UNKNOWN_TOPIC_OR_PART, 'test-topic-1');
+
+                return \RD_KAFKA_RESP_ERR_NO_ERROR;
+            });
+
+        $this->injectMockProducer();
+
+        $this->expectException(TransportException::class);
+        $this->expectExceptionCode(\RD_KAFKA_RESP_ERR_UNKNOWN_TOPIC_OR_PART);
+        $this->expectExceptionMessage('topic "test-topic-1"');
+
+        $this->connection->produce(0, 0, 'test-body', identifier: 'test.message');
+    }
+
+    public function test_no_flush_delivery_errors_are_reported_on_next_flush(): void
+    {
+        $this->producer->method('newTopic')->willReturn($this->producerTopic);
+        $this->producer->method('poll')->willReturnCallback(function () {
+            $this->deliveryReport(\RD_KAFKA_RESP_ERR_TOPIC_AUTHORIZATION_FAILED, 'test-topic-1');
+
+            return 1;
+        });
+        $this->producer->expects($this->once())
+            ->method('flush')
+            ->willReturn(\RD_KAFKA_RESP_ERR_NO_ERROR);
+
+        $this->injectMockProducer();
+
+        $this->connection->produce(0, 0, 'test-body', forceFlush: false, identifier: 'test.message');
+
+        $this->expectException(TransportException::class);
+        $this->expectExceptionCode(\RD_KAFKA_RESP_ERR_TOPIC_AUTHORIZATION_FAILED);
+
+        $this->connection->flush();
+    }
+
     public function test_get_subscribes_to_topics_and_returns_messages(): void
     {
         $message = $this->createConfiguredMessage(
@@ -347,6 +409,18 @@ class KafkaConnectionTest extends TestCase
         $message->err = $err;
         $message->headers = $headers;
         return $message;
+    }
+
+    /**
+     * Simulates librdkafka calling the delivery report callback during poll() or flush().
+     */
+    private function deliveryReport(int $err, string $topic): void
+    {
+        $message = new Message();
+        $message->err = $err;
+        $message->topic_name = $topic;
+
+        (new ReflectionClass($this->connection))->getProperty('deliveryReports')->getValue($this->connection)->record($message);
     }
 
     private function injectMockProducer(): void
