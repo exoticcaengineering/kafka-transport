@@ -16,7 +16,8 @@ final class ConsumerSettingMother
             'topics' => ['test-topic-1', 'test-topic-2'],
             'consumeTimeout' => 500,
             'commitAsync' => true,
-            'validateSchema' => false
+            'validateSchema' => false,
+            'commitOnReceive' => false,
         ];
 
         $settings = array_merge($defaults, $overrides);
@@ -27,7 +28,8 @@ final class ConsumerSettingMother
             $settings['topics'],
             (int) $settings['consumeTimeout'],
             (bool) $settings['commitAsync'],
-            (bool) $settings['validateSchema']
+            (bool) $settings['validateSchema'],
+            commitOnReceive: (bool) $settings['commitOnReceive'],
         );
     }
 }

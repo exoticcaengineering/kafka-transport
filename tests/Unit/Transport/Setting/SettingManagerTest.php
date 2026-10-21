@@ -140,6 +140,24 @@ class SettingManagerTest extends TestCase
         $this->settingManager->setupConsumerOptions($config, 'test context');
     }
 
+    public function test_throws_exception_for_commit_on_receive_with_static_membership(): void
+    {
+        $config = [
+            'consumer' => [
+                'commit_on_receive' => true,
+                'config' => [
+                    'group.id' => 'test-group',
+                    'group.instance.id' => 'worker-1',
+                ]
+            ]
+        ];
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('The "commit_on_receive" option can\'t be used with "group.instance.id"');
+
+        $this->settingManager->setupConsumerOptions($config, 'test context');
+    }
+
     public function test_throws_exception_for_invalid_producer_option_types(): void
     {
         $config = [
