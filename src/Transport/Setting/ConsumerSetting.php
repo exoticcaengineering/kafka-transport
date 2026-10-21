@@ -19,6 +19,7 @@ final readonly class ConsumerSetting
         public bool $commitAsync = true,
         public bool $validateSchema = false,
         public ?string $dlqTopic = null,
+        public bool $commitOnReceive = false,
     ) {
     }
 }

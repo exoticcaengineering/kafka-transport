@@ -19,6 +19,13 @@ class KafkaConnection
     private bool $consumerSubscribed = false;
     private bool $consumerMustBeRunning = false;
     private const WILDCARD_ROUTING = '*';
+    // The consumer no longer owns the partition, so whoever owns it now reads the message.
+    private const PARTITION_LOST_ERRORS = [
+        RD_KAFKA_RESP_ERR_ILLEGAL_GENERATION,
+        RD_KAFKA_RESP_ERR_UNKNOWN_MEMBER_ID,
+        RD_KAFKA_RESP_ERR_REBALANCE_IN_PROGRESS,
+        RD_KAFKA_RESP_ERR__ASSIGNMENT_LOST,
+    ];
     private ?KafkaConsumer $consumer;
     private ?Producer $producer;
 
@@ -89,10 +96,20 @@ class KafkaConnection
                     }
 
                     if ($forceAckByRoutingMap) {
-                        $this->ack($kafkaMessage);
+                        $this->commit($kafkaMessage);
                         break;
                     }
 
+
+                    if ($this->generalSetting->consumer->commitOnReceive) {
+                        // Only the consumer that committed the message handles it. If the partition was revoked
+                        // before the commit, another consumer gets the message.
+                        if ($this->commitAndLeave($kafkaMessage)) {
+                            yield $kafkaMessage;
+                        }
+
+                        return;
+                    }
 
                     yield $kafkaMessage;
                     // no break
@@ -112,12 +129,46 @@ class KafkaConnection
 
     public function ack(Message $message): void
     {
+        // Already committed on receive, and this consumer left the group.
+        if ($this->generalSetting->consumer->commitOnReceive) {
+            return;
+        }
+
+        $this->commit($message);
+    }
+
+    private function commit(Message $message): void
+    {
         $consumer = $this->getConsumer();
 
         if ($this->generalSetting->consumer->commitAsync) {
             $consumer->commitAsync($message);
         } else {
             $consumer->commit($message);
+        }
+    }
+
+    /**
+     * Commits the message and leaves the group before it's handled, so a slow handler never holds
+     * partitions or stalls a rebalance. Delivery becomes at-most-once: a worker killed while handling
+     * loses the message. The next get() joins the group again.
+     */
+    private function commitAndLeave(Message $message): bool
+    {
+        try {
+            $this->getConsumer()->commit($message);
+
+            return true;
+        } catch (\RdKafka\Exception $e) {
+            if (\in_array($e->getCode(), self::PARTITION_LOST_ERRORS, true)) {
+                return false;
+            }
+
+            throw $e;
+        } finally {
+            $this->consumer->close();
+            $this->consumer = null;
+            $this->consumerSubscribed = false;
         }
     }
 

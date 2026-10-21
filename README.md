@@ -111,6 +111,22 @@ A group can't mix eager and cooperative members, so switching an existing group 
 >     stop_worker_on_signals: [2, 3, 15] # SIGINT, SIGQUIT, SIGTERM
 > ```
 
+### Commit on receive
+
+A consumer must poll at least every `max.poll.interval.ms`, and a rebalance waits until every member polls again. With handlers that take minutes, one busy worker stalls the whole group. With `commit_on_receive` the worker commits each message as soon as it's received, leaves the group and only then handles it, so it never holds partitions while it works. The next `get()` joins the group again.
+
+```yaml
+    consumer:
+      commit_on_receive: true
+```
+
+Meant for one-shot workers, like a Kubernetes Job running `messenger:consume <transport> --limit=1`. A long-running worker works too, but joins and leaves the group once per message.
+
+> [!CAUTION]
+> Delivery becomes at-most-once: a worker killed while handling a message loses it. If the commit fails because the partition was revoked meanwhile, the worker skips the message and the consumer that gets the partition reads it again. Any other commit error is thrown.
+
+It can't be combined with static membership (`group.instance.id`): librdkafka doesn't send LeaveGroup for static members, so their partitions would stay reserved while the message is handled. It's also only accepted per transport, not in the global `exoticca_kafka_messenger.consumer` config, which applies to every transport.
+
 ### Delivery errors
 
 Sending a message flushes the producer and checks the delivery report of every message produced since the last flush. If the broker rejected any of them (the topic doesn't exist and auto-creation is disabled, missing ACLs, message too large, authentication errors...), the send throws a `TransportException` with the error and the topic, so Messenger doesn't acknowledge the message and it can be retried. If the broker is unreachable, the flush times out and throws too.

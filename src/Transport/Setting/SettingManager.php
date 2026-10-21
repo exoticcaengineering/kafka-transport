@@ -11,6 +11,7 @@ class SettingManager
         'consume_timeout_ms' => 500,
         'validate_schema' => false,
         'dlq_topic' => null,
+        'commit_on_receive' => false,
         'topics' => [],
         'routing' => [],
         'config' => [
@@ -114,6 +115,24 @@ class SettingManager
                     gettype($options['commit_async']),
                     $contextErrorMessage
                 )
+            );
+        }
+
+        if (!\is_bool($options['commit_on_receive'])) {
+            throw new \InvalidArgumentException(
+                sprintf(
+                    'The "commit_on_receive" option type must be boolean, "%s" %s',
+                    gettype($options['commit_on_receive']),
+                    $contextErrorMessage
+                )
+            );
+        }
+
+        // librdkafka's close() doesn't send LeaveGroup for static members, so their partitions would stay
+        // reserved until session.timeout.ms while the message is handled.
+        if ($options['commit_on_receive'] && isset($options['config']['group.instance.id'])) {
+            throw new \InvalidArgumentException(
+                sprintf('The "commit_on_receive" option can\'t be used with "group.instance.id" %s', $contextErrorMessage)
             );
         }
 

@@ -94,6 +94,7 @@ final class KafkaTransportSettingResolver
             commitAsync: $consumerOptions['commit_async'],
             validateSchema: $consumerOptions['validate_schema'],
             dlqTopic: $consumerOptions['dlq_topic'],
+            commitOnReceive: $consumerOptions['commit_on_receive'],
         );
 
         $producerConfig = new ProducerSetting(

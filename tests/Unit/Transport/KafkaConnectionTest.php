@@ -337,6 +337,90 @@ class KafkaConnectionTest extends TestCase
         $generator->current();
     }
 
+    public function test_commit_on_receive_commits_and_leaves_the_group_before_handling(): void
+    {
+        $this->connection = new KafkaConnection(GeneralSettingMother::create(['consumer' => ['commitOnReceive' => true]]));
+        $message = $this->createConfiguredMessage(
+            \RD_KAFKA_RESP_ERR_NO_ERROR,
+            [MessageSerializer::identifierHeaderKey() => 'test.message']
+        );
+
+        $this->consumer->method('consume')->willReturn($message);
+        $this->consumer->expects($this->once())->method('commit')->with($this->identicalTo($message));
+        $this->consumer->expects($this->never())->method('commitAsync');
+        $this->consumer->expects($this->once())->method('close');
+        $this->injectMockConsumer();
+
+        $generator = $this->connection->get([]);
+
+        $this->assertSame($message, $generator->current());
+        // Already out of the group while the message is handled.
+        $this->assertNull((new ReflectionClass($this->connection))->getProperty('consumer')->getValue($this->connection));
+        $generator->next();
+        $this->assertFalse($generator->valid());
+
+        // Handled outside the group: acking must not create a consumer and join again.
+        $this->connection->ack($message);
+        $this->assertNull((new ReflectionClass($this->connection))->getProperty('consumer')->getValue($this->connection));
+    }
+
+    public function test_commit_on_receive_still_commits_messages_not_in_routing(): void
+    {
+        $this->connection = new KafkaConnection(GeneralSettingMother::create(['consumer' => ['commitOnReceive' => true]]));
+        $message = $this->createConfiguredMessage(
+            \RD_KAFKA_RESP_ERR_NO_ERROR,
+            [MessageSerializer::identifierHeaderKey() => 'unknown.message']
+        );
+        $emptyMessage = $this->createConfiguredMessage(\RD_KAFKA_RESP_ERR__PARTITION_EOF, []);
+
+        $this->consumer->method('consume')->willReturnOnConsecutiveCalls($message, $emptyMessage);
+        $this->consumer->expects($this->once())->method('commitAsync')->with($this->identicalTo($message));
+        $this->consumer->expects($this->never())->method('close');
+        $this->injectMockConsumer();
+        $this->stopConsumerLoop();
+
+        $this->connection->get([])->current();
+    }
+
+    public function test_commit_on_receive_skips_the_message_when_the_partition_was_revoked(): void
+    {
+        $this->connection = new KafkaConnection(GeneralSettingMother::create(['consumer' => ['commitOnReceive' => true]]));
+        $message = $this->createConfiguredMessage(
+            \RD_KAFKA_RESP_ERR_NO_ERROR,
+            [MessageSerializer::identifierHeaderKey() => 'test.message']
+        );
+
+        $this->consumer->method('consume')->willReturn($message);
+        $this->consumer->method('commit')->willThrowException(
+            new \RdKafka\Exception('Broker: Specified group generation id is not valid', \RD_KAFKA_RESP_ERR_ILLEGAL_GENERATION)
+        );
+        $this->consumer->expects($this->once())->method('close');
+        $this->injectMockConsumer();
+
+        $generator = $this->connection->get([]);
+
+        $this->assertFalse($generator->valid());
+    }
+
+    public function test_commit_on_receive_throws_other_commit_errors(): void
+    {
+        $this->connection = new KafkaConnection(GeneralSettingMother::create(['consumer' => ['commitOnReceive' => true]]));
+        $message = $this->createConfiguredMessage(
+            \RD_KAFKA_RESP_ERR_NO_ERROR,
+            [MessageSerializer::identifierHeaderKey() => 'test.message']
+        );
+
+        $this->consumer->method('consume')->willReturn($message);
+        $this->consumer->method('commit')->willThrowException(
+            new \RdKafka\Exception('Local: Timed out', \RD_KAFKA_RESP_ERR__TIMED_OUT)
+        );
+        $this->consumer->expects($this->once())->method('close');
+        $this->injectMockConsumer();
+
+        $this->expectException(\RdKafka\Exception::class);
+        $this->connection->get([])->current();
+    }
+
     public function test_ack_commits_message(): void
     {
         $message = new Message();
