@@ -186,6 +186,7 @@ class SettingManagerTest extends TestCase
     {
         yield 'auto commit off' => [['config' => ['group.id' => 'g', 'enable.auto.commit' => 'false']], '"enable.auto.commit" to be "true"'];
         yield 'auto offset store on' => [['config' => ['group.id' => 'g', 'enable.auto.offset.store' => 'true']], '"enable.auto.offset.store" to be "false"'];
+        yield 'periodic commit disabled' => [['config' => ['group.id' => 'g', 'auto.commit.interval.ms' => '0']], 'requires a positive "auto.commit.interval.ms"'];
         yield 'commit on receive' => [['commit_on_receive' => true, 'config' => ['group.id' => 'g']], 'can\'t be "store" with "commit_on_receive"'];
     }
 

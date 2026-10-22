@@ -98,6 +98,13 @@ class SettingManager
             }
         }
 
+        // 0 disables the periodic commit, so stored offsets would only be committed on revoke and close
+        if (isset($userConfig['auto.commit.interval.ms']) && (int) $userConfig['auto.commit.interval.ms'] <= 0) {
+            throw new \InvalidArgumentException(
+                sprintf('The "commit_mode" option "store" requires a positive "auto.commit.interval.ms" %s', $contextErrorMessage)
+            );
+        }
+
         return [...$options['config'], ...$forcedConfig];
     }
 
