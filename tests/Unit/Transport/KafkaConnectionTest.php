@@ -8,6 +8,7 @@ use Exoticca\KafkaMessenger\Tests\ObjectMother\GeneralSettingMother;
 use Exoticca\KafkaMessenger\Transport\KafkaConnection;
 use Exoticca\KafkaMessenger\Transport\KafkaDeliveryReports;
 use Exoticca\KafkaMessenger\Transport\Serializer\MessageSerializer;
+use Exoticca\KafkaMessenger\Transport\Setting\CommitMode;
 use Exoticca\KafkaMessenger\Transport\Setting\ConsumerSetting;
 use Exoticca\KafkaMessenger\Transport\Setting\GeneralSetting;
 use Exoticca\KafkaMessenger\Transport\Setting\ProducerSetting;
@@ -15,6 +16,7 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RdKafka\KafkaConsumer;
+use RdKafka\KafkaConsumerTopic;
 use RdKafka\Message;
 use RdKafka\Producer;
 use RdKafka\ProducerTopic;
@@ -434,25 +436,87 @@ class KafkaConnectionTest extends TestCase
         $this->connection->ack($message);
     }
 
-    public function test_ack_uses_commit_when_commit_async_is_true(): void
+    public function test_ack_commits_and_waits_in_sync_mode(): void
     {
-        $generalSetting = GeneralSettingMother::create([
-            'consumer' => [
-                'commitAsync' => true
-            ]
-        ]);
-
-        $this->connection = new KafkaConnection($generalSetting);
-
+        $this->connection = new KafkaConnection(GeneralSettingMother::create(['consumer' => ['commitMode' => CommitMode::SYNC]]));
         $message = new Message();
 
-        $this->consumer->expects($this->once())
-            ->method('commitAsync')
-            ->with($message);
-
+        $this->consumer->expects($this->once())->method('commit')->with($message);
+        $this->consumer->expects($this->never())->method('commitAsync');
         $this->injectMockConsumer();
 
         $this->connection->ack($message);
+    }
+
+    public function test_store_mode_stores_offsets_without_committing(): void
+    {
+        $this->connection = new KafkaConnection(GeneralSettingMother::create(['consumer' => ['commitMode' => CommitMode::STORE]]));
+        $topic = $this->createMock(KafkaConsumerTopic::class);
+
+        // One topic handle per topic name, reused for every message
+        $this->consumer->expects($this->once())->method('newTopic')->with('test_topic')->willReturn($topic);
+        $topic->expects($this->exactly(2))
+            ->method('offsetStore')
+            ->with(3, $this->callback(fn (int $offset) => in_array($offset, [41, 42], true)));
+        $this->consumer->expects($this->never())->method('commit');
+        $this->consumer->expects($this->never())->method('commitAsync');
+        $this->injectMockConsumer();
+
+        $this->connection->ack($this->createStoredMessage(41));
+        $this->connection->ack($this->createStoredMessage(42));
+    }
+
+    public function test_store_mode_stores_offsets_of_messages_not_in_routing(): void
+    {
+        $this->connection = new KafkaConnection(GeneralSettingMother::create(['consumer' => ['commitMode' => CommitMode::STORE]]));
+        $message = $this->createStoredMessage(7, [MessageSerializer::identifierHeaderKey() => 'unknown.message']);
+        $topic = $this->createMock(KafkaConsumerTopic::class);
+
+        $this->consumer->method('consume')
+            ->willReturnOnConsecutiveCalls($message, $this->createConfiguredMessage(\RD_KAFKA_RESP_ERR__PARTITION_EOF, []));
+        $this->consumer->method('newTopic')->willReturn($topic);
+        $topic->expects($this->once())->method('offsetStore')->with(3, 7);
+        $this->consumer->expects($this->never())->method('commitAsync');
+        $this->injectMockConsumer();
+        $this->stopConsumerLoop();
+
+        $this->connection->get([])->current();
+    }
+
+    public function test_store_mode_ignores_messages_of_revoked_partitions(): void
+    {
+        $this->connection = new KafkaConnection(GeneralSettingMother::create(['consumer' => ['commitMode' => CommitMode::STORE]]));
+        $topic = $this->createMock(KafkaConsumerTopic::class);
+
+        $this->consumer->method('newTopic')->willReturn($topic);
+        $topic->method('offsetStore')->willThrowException(new \RdKafka\Exception('Local: Erroneous state', \RD_KAFKA_RESP_ERR__STATE));
+        $this->injectMockConsumer();
+
+        $this->connection->ack($this->createStoredMessage(1));
+        $this->addToAssertionCount(1);
+    }
+
+    public function test_store_mode_throws_other_offset_store_errors(): void
+    {
+        $this->connection = new KafkaConnection(GeneralSettingMother::create(['consumer' => ['commitMode' => CommitMode::STORE]]));
+        $topic = $this->createMock(KafkaConsumerTopic::class);
+
+        $this->consumer->method('newTopic')->willReturn($topic);
+        $topic->method('offsetStore')->willThrowException(new \RdKafka\Exception('Local: Invalid argument', \RD_KAFKA_RESP_ERR__INVALID_ARG));
+        $this->injectMockConsumer();
+
+        $this->expectException(\RdKafka\Exception::class);
+        $this->connection->ack($this->createStoredMessage(1));
+    }
+
+    private function createStoredMessage(int $offset, array $headers = []): Message
+    {
+        $message = $this->createConfiguredMessage(\RD_KAFKA_RESP_ERR_NO_ERROR, $headers);
+        $message->topic_name = 'test_topic';
+        $message->partition = 3;
+        $message->offset = $offset;
+
+        return $message;
     }
 
     public function test_eager_rebalance_reassigns_all_partitions(): void

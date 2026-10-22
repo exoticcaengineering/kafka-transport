@@ -6,6 +6,7 @@ namespace Exoticca\KafkaMessenger\Tests\Unit\Transport;
 
 use Exoticca\KafkaMessenger\Tests\Fixtures\TestMessage;
 use Exoticca\KafkaMessenger\Transport\KafkaTransportSettingResolver;
+use Exoticca\KafkaMessenger\Transport\Setting\CommitMode;
 use Exoticca\KafkaMessenger\Transport\Setting\ConsumerSetting;
 use Exoticca\KafkaMessenger\Transport\Setting\GeneralSetting;
 use Exoticca\KafkaMessenger\Transport\Setting\KafkaOptionList;
@@ -13,6 +14,7 @@ use Exoticca\KafkaMessenger\Transport\Setting\ProducerSetting;
 use Exoticca\KafkaMessenger\Transport\Setting\SettingManager;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(KafkaTransportSettingResolver::class)]
@@ -116,5 +118,30 @@ final class KafkaTransportSettingResolverTest extends TestCase
 
         $this->assertTrue($result->consumer->validateSchema);
         $this->assertTrue($result->producer->validateSchema);
+    }
+
+    public static function commitModes(): iterable
+    {
+        yield 'default' => [[], [], CommitMode::ASYNC];
+        yield 'legacy commit_async false' => [['commit_async' => false], [], CommitMode::SYNC];
+        yield 'commit_mode wins over global commit_async' => [['commit_async' => true], ['commit_mode' => 'store'], CommitMode::STORE];
+        yield 'global commit_mode' => [['commit_mode' => 'sync'], [], CommitMode::SYNC];
+    }
+
+    #[DataProvider('commitModes')]
+    public function test_resolves_commit_mode(array $globalConsumer, array $transportConsumer, CommitMode $expected): void
+    {
+        $result = $this->resolver->resolve(
+            'kafka://broker:9092',
+            ['consumer' => $globalConsumer],
+            [
+                'transport_name' => 'kafka_test',
+                'identifier' => ['staticMethod' => 'getType'],
+                'topics' => ['test-topic'],
+                'consumer' => ['config' => ['group.id' => 'test-group'], ...$transportConsumer],
+            ],
+        );
+
+        $this->assertSame($expected, $result->consumer->commitMode);
     }
 }

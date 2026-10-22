@@ -12,6 +12,7 @@ class SettingManager
         'validate_schema' => false,
         'dlq_topic' => null,
         'commit_on_receive' => false,
+        'commit_mode' => null,
         'topics' => [],
         'routing' => [],
         'config' => [
@@ -61,7 +62,43 @@ class SettingManager
         $this->validateKafkaOptions($options['config'], KafkaOptionList::consumer(), $contextErrorMessage);
         $this->validateRequiredConsumerConfig($options['config'], $contextErrorMessage);
 
+        if (CommitMode::STORE->value === $options['commit_mode']) {
+            $options['config'] = $this->setupOffsetStore($options, $configOptions['config'] ?? [], $contextErrorMessage);
+        }
+
         return $options;
+    }
+
+    /**
+     * librdkafka commits the stored offsets in the background, and only the offsets of acked messages are stored.
+     * With enable.auto.offset.store left on, librdkafka would store every offset as soon as it's consumed, so a
+     * message whose handler fails would be committed anyway.
+     *
+     * @param array<string, string> $userConfig the config as given, before the defaults are merged
+     * @return array<string, string>
+     */
+    private function setupOffsetStore(array $options, array $userConfig, string $contextErrorMessage): array
+    {
+        if ($options['commit_on_receive']) {
+            throw new \InvalidArgumentException(
+                sprintf('The "commit_mode" option can\'t be "store" with "commit_on_receive" %s', $contextErrorMessage)
+            );
+        }
+
+        $forcedConfig = [
+            'enable.auto.commit' => 'true',
+            'enable.auto.offset.store' => 'false',
+        ];
+
+        foreach ($forcedConfig as $key => $value) {
+            if (isset($userConfig[$key]) && $userConfig[$key] !== $value) {
+                throw new \InvalidArgumentException(
+                    sprintf('The "commit_mode" option "store" requires "%s" to be "%s" %s', $key, $value, $contextErrorMessage)
+                );
+            }
+        }
+
+        return [...$options['config'], ...$forcedConfig];
     }
 
     /**
@@ -123,6 +160,18 @@ class SettingManager
                 sprintf(
                     'The "commit_on_receive" option type must be boolean, "%s" %s',
                     gettype($options['commit_on_receive']),
+                    $contextErrorMessage
+                )
+            );
+        }
+
+        $commitMode = $options['commit_mode'];
+        if (null !== $commitMode && (!\is_string($commitMode) || null === CommitMode::tryFrom($commitMode))) {
+            throw new \InvalidArgumentException(
+                sprintf(
+                    'The "commit_mode" option must be one of "%s", "%s" given %s',
+                    implode('", "', array_column(CommitMode::cases(), 'value')),
+                    \is_string($commitMode) ? $commitMode : get_debug_type($commitMode),
                     $contextErrorMessage
                 )
             );
