@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Exoticca\KafkaMessenger\Tests\ObjectMother;
 
+use Exoticca\KafkaMessenger\Transport\Setting\CommitMode;
 use Exoticca\KafkaMessenger\Transport\Setting\ConsumerSetting;
 
 final class ConsumerSettingMother
@@ -15,7 +16,7 @@ final class ConsumerSettingMother
             'config' => ['group.id' => 'test-group'],
             'topics' => ['test-topic-1', 'test-topic-2'],
             'consumeTimeout' => 500,
-            'commitAsync' => true,
+            'commitMode' => CommitMode::ASYNC,
             'validateSchema' => false,
             'commitOnReceive' => false,
         ];
@@ -27,7 +28,7 @@ final class ConsumerSettingMother
             $settings['config'],
             $settings['topics'],
             (int) $settings['consumeTimeout'],
-            (bool) $settings['commitAsync'],
+            $settings['commitMode'],
             (bool) $settings['validateSchema'],
             commitOnReceive: (bool) $settings['commitOnReceive'],
         );

@@ -111,6 +111,27 @@ A group can't mix eager and cooperative members, so switching an existing group 
 >     stop_worker_on_signals: [2, 3, 15] # SIGINT, SIGQUIT, SIGTERM
 > ```
 
+### Commit mode
+
+`commit_mode` sets how the offset of a finished message (handled, or skipped because it isn't in `routing`) reaches Kafka:
+
+| Mode | What happens per message | Commit requests to the group coordinator |
+|---|---|---|
+| `sync` | `commit()`, waits for the broker | One per message, one at a time |
+| `async` | `commitAsync()`, doesn't wait | One per message, unlimited in flight |
+| `store` | Offset stored in memory | One per `auto.commit.interval.ms` (default 5s), plus one when partitions are revoked or the consumer closes |
+
+```yaml
+    consumer:
+      commit_mode: store
+```
+
+Without `commit_mode`, the legacy `commit_async` option applies (`true` is `async`, the default; `false` is `sync`). `commit_mode` can be set per transport or in the global `exoticca_kafka_messenger.consumer` config.
+
+Use `store` on topics that carry bursts of messages the consumer doesn't route. With `async`, skipping a burst sends one commit per message: hundreds pile up in flight, the heartbeats queued behind them time out, and the whole group rebalances. `store` sets `enable.auto.commit: 'true'` and `enable.auto.offset.store: 'false'`, and a `config` that contradicts them is rejected, as is `auto.commit.interval.ms: '0'`, which disables the periodic commit. If `enable.auto.offset.store` were left on, librdkafka would store each offset as soon as the message is consumed, so a failed message would be committed too.
+
+Delivery stays at-least-once: an offset is only stored when the message is acked. Stopping the worker commits the stored offsets, but a killed worker reads again up to `auto.commit.interval.ms` of already handled messages. If the partition was revoked while the message was being handled, its offset isn't stored and the consumer that gets the partition reads it again. `store` can't be combined with `commit_on_receive`, which commits before handling.
+
 ### Commit on receive
 
 A consumer must poll at least every `max.poll.interval.ms`, and a rebalance waits until every member polls again. With handlers that take minutes, one busy worker stalls the whole group. With `commit_on_receive` the worker commits each message as soon as it's received, leaves the group and only then handles it, so it never holds partitions while it works. The next `get()` joins the group again.

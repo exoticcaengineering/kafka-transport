@@ -8,6 +8,7 @@ use Exoticca\KafkaMessenger\SchemaRegistry\Avro\AvroSubject;
 use Exoticca\KafkaMessenger\Transport\Setting\KafkaOptionList;
 use Exoticca\KafkaMessenger\Transport\Setting\SettingManager;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(SettingManager::class)]
@@ -156,6 +157,57 @@ class SettingManagerTest extends TestCase
         $this->expectExceptionMessage('The "commit_on_receive" option can\'t be used with "group.instance.id"');
 
         $this->settingManager->setupConsumerOptions($config, 'test context');
+    }
+
+    public function test_store_commit_mode_forces_auto_commit_of_stored_offsets(): void
+    {
+        $result = $this->settingManager->setupConsumerOptions(
+            ['consumer' => ['commit_mode' => 'store', 'config' => ['group.id' => 'test-group']]],
+            'test context'
+        );
+
+        $this->assertSame('true', $result['config']['enable.auto.commit']);
+        $this->assertSame('false', $result['config']['enable.auto.offset.store']);
+        $this->assertSame('test-group', $result['config']['group.id']);
+    }
+
+    public function test_other_commit_modes_keep_manual_commits(): void
+    {
+        $result = $this->settingManager->setupConsumerOptions(
+            ['consumer' => ['commit_mode' => 'async', 'config' => ['group.id' => 'test-group']]],
+            'test context'
+        );
+
+        $this->assertSame('false', $result['config']['enable.auto.commit']);
+        $this->assertArrayNotHasKey('enable.auto.offset.store', $result['config']);
+    }
+
+    public static function storeModeConflicts(): iterable
+    {
+        yield 'auto commit off' => [['config' => ['group.id' => 'g', 'enable.auto.commit' => 'false']], '"enable.auto.commit" to be "true"'];
+        yield 'auto offset store on' => [['config' => ['group.id' => 'g', 'enable.auto.offset.store' => 'true']], '"enable.auto.offset.store" to be "false"'];
+        yield 'periodic commit disabled' => [['config' => ['group.id' => 'g', 'auto.commit.interval.ms' => '0']], 'requires a positive "auto.commit.interval.ms"'];
+        yield 'commit on receive' => [['commit_on_receive' => true, 'config' => ['group.id' => 'g']], 'can\'t be "store" with "commit_on_receive"'];
+    }
+
+    #[DataProvider('storeModeConflicts')]
+    public function test_throws_exception_for_config_that_contradicts_store_commit_mode(array $consumer, string $error): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage($error);
+
+        $this->settingManager->setupConsumerOptions(['consumer' => ['commit_mode' => 'store', ...$consumer]], 'test context');
+    }
+
+    public function test_throws_exception_for_unknown_commit_mode(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('The "commit_mode" option must be one of "sync", "async", "store", "batch" given');
+
+        $this->settingManager->setupConsumerOptions(
+            ['consumer' => ['commit_mode' => 'batch', 'config' => ['group.id' => 'test-group']]],
+            'test context'
+        );
     }
 
     public function test_throws_exception_for_invalid_producer_option_types(): void

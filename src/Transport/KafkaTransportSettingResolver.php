@@ -2,6 +2,7 @@
 
 namespace Exoticca\KafkaMessenger\Transport;
 
+use Exoticca\KafkaMessenger\Transport\Setting\CommitMode;
 use Exoticca\KafkaMessenger\Transport\Setting\ConsumerSetting;
 use Exoticca\KafkaMessenger\Transport\Setting\GeneralSetting;
 use Exoticca\KafkaMessenger\Transport\Setting\ProducerSetting;
@@ -91,7 +92,10 @@ final class KafkaTransportSettingResolver
             config: $consumerOptions['config'],
             topics: $consumerOptions['topics'],
             consumeTimeout: $consumerOptions['consume_timeout_ms'],
-            commitAsync: $consumerOptions['commit_async'],
+            // commit_async is the legacy option: it only applies when commit_mode isn't set
+            commitMode: null !== $consumerOptions['commit_mode']
+                ? CommitMode::from($consumerOptions['commit_mode'])
+                : ($consumerOptions['commit_async'] ? CommitMode::ASYNC : CommitMode::SYNC),
             validateSchema: $consumerOptions['validate_schema'],
             dlqTopic: $consumerOptions['dlq_topic'],
             commitOnReceive: $consumerOptions['commit_on_receive'],
