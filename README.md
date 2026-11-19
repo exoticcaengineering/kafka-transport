@@ -148,6 +148,26 @@ exoticca_kafka_messenger:
 
 Schemas are cached in memory for the lifetime of the process, so the registry is only called the first time a schema is needed. Schemas looked up by id (consumer) or by subject version (`KafkaMessageVersionStamp`) never change, so they're cached forever. The latest schema of a subject (producer) is fetched again after `latest_schema_ttl` seconds, so new schema versions are picked up without restarting.
 
+### Union schemas
+
+If the schema of a topic is a union of records, the producer encodes each message with one record of the union. By default, the record is the one whose name is equal to the message identifier (the value of `staticMethod`).
+
+If the identifier is not a valid Avro name, or is different from the record name, map it with `avro_records` in the producer options of the transport. The map applies only to the Avro encoding. The `X-exoticca-identifier` header, the producer routing and the consumer routing still use the identifier.
+
+```yaml
+booking_events:
+  dsn: '%env(KAFKA_EVENTS_MESSENGER_TRANSPORT_DSN)%'
+  options:
+    topics: ['monolith.booking']
+    validate_schema: true
+    producer:
+      avro_records:
+        'exoticca.booking.created': booking_created
+        'exoticca.booking.cancelled': booking_cancelled
+```
+
+Each record name must be a valid Avro name (`[A-Za-z_][A-Za-z0-9_]*`). If it is not, the transport fails when it is created. If the union has no record with the name, the send fails with an error that lists the records of the union.
+
 ## Security
 
 You can set your security settings in the bundle configuration.

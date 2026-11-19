@@ -58,6 +58,7 @@ final readonly class KafkaTransportFactory implements TransportFactoryInterface
                 schemaRegistryManager: ($options->producer->validateSchema)
                     ? $this->schemaRegistryManager
                     : null,
+                avroRecords: $options->producer->avroRecords,
             ),
             receiver: new KafkaTransportReceiver(
                 connection: $connection,

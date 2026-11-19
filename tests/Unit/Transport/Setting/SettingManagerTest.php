@@ -172,6 +172,47 @@ class SettingManagerTest extends TestCase
         $this->settingManager->setupProducerOptions($config, 'test context');
     }
 
+    public function test_accepts_valid_avro_records(): void
+    {
+        $config = [
+            'producer' => [
+                'avro_records' => ['exoticca.booking.created' => 'booking_created'],
+            ]
+        ];
+
+        $result = $this->settingManager->setupProducerOptions($config, 'test context');
+
+        $this->assertSame(['exoticca.booking.created' => 'booking_created'], $result['avro_records']);
+    }
+
+    public function test_throws_exception_for_non_string_avro_record_name(): void
+    {
+        $config = [
+            'producer' => [
+                'avro_records' => ['exoticca.booking.created' => 1],
+            ]
+        ];
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('The "avro_records" option must map "exoticca.booking.created" to a string, "integer" given test context.');
+
+        $this->settingManager->setupProducerOptions($config, 'test context');
+    }
+
+    public function test_throws_exception_for_invalid_avro_record_name(): void
+    {
+        $config = [
+            'producer' => [
+                'avro_records' => ['exoticca.booking.created' => 'booking-created'],
+            ]
+        ];
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('The "avro_records" option maps "exoticca.booking.created" to "booking-created", which is not a valid Avro record name test context.');
+
+        $this->settingManager->setupProducerOptions($config, 'test context');
+    }
+
     public function test_throws_exception_when_consumer_missing_required_config(): void
     {
         $config = [

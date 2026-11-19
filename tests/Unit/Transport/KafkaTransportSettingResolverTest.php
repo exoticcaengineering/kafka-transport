@@ -47,6 +47,7 @@ final class KafkaTransportSettingResolverTest extends TestCase
                 'routing' => [
                     ['name' => 'message', 'topic' => 'test-topic'],
                 ],
+                'avro_records' => ['message' => 'message_record'],
             ],
         ];
 
@@ -58,6 +59,7 @@ final class KafkaTransportSettingResolverTest extends TestCase
         $this->assertEquals('getType', $result->staticMethodIdentifier);
         $this->assertEquals(['message' => TestMessage::class], $result->consumer->routing);
         $this->assertEquals(['message' => 'test-topic'], $result->producer->routing);
+        $this->assertEquals(['message' => 'message_record'], $result->producer->avroRecords);
         $this->assertEquals(['test-topic'], $result->consumer->topics);
         $this->assertEquals(['test-topic'], $result->producer->topics);
     }

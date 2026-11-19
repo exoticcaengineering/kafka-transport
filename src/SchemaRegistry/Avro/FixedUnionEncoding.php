@@ -46,7 +46,7 @@ class FixedUnionEncoding
      */
     private static function encodeWithTypeNotation(Union $schema, $value): string
     {
-        $realValue = [];
+        $realValue = null;
         $index = null;
         $realSchema = null;
         $type = null;
@@ -60,8 +60,14 @@ class FixedUnionEncoding
             }
         }
 
-        if (empty($realValue)) {
-            throw new AvroException('Avro union without a valid identity key property');
+        if (null === $realValue) {
+            $recordNames = array_map(static fn ($type) => $type->getName(), $schema->getTypes());
+
+            throw new AvroException(sprintf(
+                'Avro union has no record named "%s". Union records: "%s"',
+                $keyIdentifier,
+                implode('", "', $recordNames)
+            ));
         }
 
         if (Validating::isValid($realValue, $type)) {

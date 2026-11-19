@@ -21,11 +21,15 @@ use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
 
 final class KafkaTransportSender implements SenderInterface
 {
+    /**
+     * @param array<string, string> $avroRecords message identifier => record name of its Avro union branch
+     */
     public function __construct(
         private KafkaConnection             $connection,
         private ?KafkaMetadataHookInterface $metadata = null,
         private ?SerializerInterface        $serializer = new PhpSerializer(),
         private ?SchemaRegistryManager      $schemaRegistryManager = null,
+        private array                       $avroRecords = [],
     ) {
     }
 
@@ -68,6 +72,7 @@ final class KafkaTransportSender implements SenderInterface
         }
 
         $identifier = $decodedEnvelope["headers"][MessageSerializer::identifierHeaderKey()] ?? throw new Exception('Discriminatory name not found in envelope');
+        $avroRecordName = $this->avroRecords[$identifier] ?? $identifier;
 
         if (!$partition) {
             $partition = \RD_KAFKA_PARTITION_UA;
@@ -86,7 +91,7 @@ final class KafkaTransportSender implements SenderInterface
                 headers: $decodedEnvelope["headers"] ?? [],
                 forceFlush: $forceFlush,
                 identifier: $identifier,
-                beforeProduceConvertBody: fn (string $topic) => $this->encodeWithSchemaRegistry($topic, $decodedEnvelope["body"], $identifier, $targetVersion)
+                beforeProduceConvertBody: fn (string $topic) => $this->encodeWithSchemaRegistry($topic, $decodedEnvelope["body"], $avroRecordName, $targetVersion)
             );
         } catch (Exception $e) {
             throw new TransportException($e->getMessage(), 0, $e);

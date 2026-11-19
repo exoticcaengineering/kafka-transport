@@ -287,4 +287,39 @@ final class KafkaTransportSenderTest extends TestCase
 
         $this->assertEquals($body, $result);
     }
+
+    public function test_send_encodes_with_the_mapped_avro_record_name(): void
+    {
+        $envelope = new Envelope(new \stdClass());
+        $encodedEnvelope = [
+            'body' => '{"id":1}',
+            'headers' => [
+                MessageSerializer::identifierHeaderKey() => 'exoticca.booking.created'
+            ]
+        ];
+
+        $this->serializer->method('encode')->willReturn($encodedEnvelope);
+
+        $this->schemaRegistryManager->expects($this->once())
+            ->method('encode')
+            ->with(['id' => 1], 'topic', 'booking_created', null)
+            ->willReturn('avro_body');
+
+        $this->connection->expects($this->once())
+            ->method('produce')
+            ->willReturnCallback(function (...$args): void {
+                $this->assertSame('exoticca.booking.created', $args[6]);
+                $this->assertSame('avro_body', $args[7]('topic'));
+            });
+
+        $this->sender = new KafkaTransportSender(
+            $this->connection,
+            null,
+            $this->serializer,
+            $this->schemaRegistryManager,
+            ['exoticca.booking.created' => 'booking_created']
+        );
+
+        $this->sender->send($envelope);
+    }
 }
