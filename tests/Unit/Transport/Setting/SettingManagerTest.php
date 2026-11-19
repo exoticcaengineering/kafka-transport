@@ -213,6 +213,20 @@ class SettingManagerTest extends TestCase
         $this->settingManager->setupProducerOptions($config, 'test context');
     }
 
+    public function test_throws_exception_for_avro_record_name_with_trailing_newline(): void
+    {
+        $config = [
+            'producer' => [
+                'avro_records' => ['exoticca.booking.created' => "booking_created\n"],
+            ]
+        ];
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('which is not a valid Avro record name');
+
+        $this->settingManager->setupProducerOptions($config, 'test context');
+    }
+
     public function test_throws_exception_when_consumer_missing_required_config(): void
     {
         $config = [

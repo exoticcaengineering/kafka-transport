@@ -22,7 +22,7 @@ class SettingManager
     ];
 
     // Avro name rule: https://avro.apache.org/docs/1.11.1/specification/#names
-    private const string AVRO_NAME_PATTERN = '/^[A-Za-z_][A-Za-z0-9_]*$/';
+    private const string AVRO_NAME_PATTERN = '/^[A-Za-z_][A-Za-z0-9_]*\z/';
 
     private const array DEFAULT_PRODUCER_OPTIONS = [
         'validate_schema' => false,
