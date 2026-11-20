@@ -195,17 +195,25 @@ class SettingManagerTest extends TestCase
             'booking_created',
             'The "avro_records" option type must be array, "string" test context.',
         ];
+        yield 'list' => [
+            ['booking_created'],
+            'The "avro_records" option must map message identifiers to record names, a list given test context.',
+        ];
+        yield 'namespaced name' => [
+            ['exoticca.booking.created' => 'com.exoticca.booking_created'],
+            'The "avro_records" option maps "exoticca.booking.created" to "com.exoticca.booking_created", which is not a valid Avro record name without namespace test context.',
+        ];
         yield 'not a string' => [
             ['exoticca.booking.created' => 1],
             'The "avro_records" option must map "exoticca.booking.created" to a string, "integer" given test context.',
         ];
         yield 'invalid character' => [
             ['exoticca.booking.created' => 'booking-created'],
-            'The "avro_records" option maps "exoticca.booking.created" to "booking-created", which is not a valid Avro record name test context.',
+            'The "avro_records" option maps "exoticca.booking.created" to "booking-created", which is not a valid Avro record name without namespace test context.',
         ];
         yield 'trailing newline' => [
             ['exoticca.booking.created' => "booking_created\n"],
-            "The \"avro_records\" option maps \"exoticca.booking.created\" to \"booking_created\n\", which is not a valid Avro record name test context.",
+            "The \"avro_records\" option maps \"exoticca.booking.created\" to \"booking_created\n\", which is not a valid Avro record name without namespace test context.",
         ];
     }
 

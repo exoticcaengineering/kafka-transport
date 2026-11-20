@@ -49,7 +49,8 @@ final class KafkaTransportFactoryTest extends TestCase
                 'validateSchema' => true
             ],
             'producer' => [
-                'validateSchema' => true
+                'validateSchema' => true,
+                'avroRecords' => ['exoticca.booking.created' => 'booking_created'],
             ]
         ]);
 
@@ -75,6 +76,11 @@ final class KafkaTransportFactoryTest extends TestCase
         $transport = $factory->createTransport($dsn, $options, $serializer);
 
         $this->assertInstanceOf(KafkaTransport::class, $transport);
+        $sender = (new \ReflectionProperty(KafkaTransport::class, 'sender'))->getValue($transport);
+        $this->assertSame(
+            ['exoticca.booking.created' => 'booking_created'],
+            (new \ReflectionProperty(KafkaTransportSender::class, 'avroRecords'))->getValue($sender)
+        );
     }
 
     private function createFactory(): KafkaTransportFactory

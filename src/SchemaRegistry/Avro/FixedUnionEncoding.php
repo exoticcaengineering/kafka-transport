@@ -46,7 +46,7 @@ class FixedUnionEncoding
      */
     private static function encodeWithTypeNotation(Union $schema, $value): string
     {
-        $realValue = null;
+        $found = false;
         $index = null;
         $realSchema = null;
         $type = null;
@@ -54,13 +54,13 @@ class FixedUnionEncoding
 
         foreach ($schema->getTypes() as $index => $type) {
             if ($keyIdentifier === $type->getName()) {
-                $realValue = $value[self::NOTATION_VALUE_PREFIX];
+                $found = true;
 
                 break;
             }
         }
 
-        if (null === $realValue) {
+        if (!$found) {
             $recordNames = array_map(static fn ($type) => $type->getName(), $schema->getTypes());
 
             throw new AvroException(sprintf(
@@ -69,6 +69,8 @@ class FixedUnionEncoding
                 implode('", "', $recordNames)
             ));
         }
+
+        $realValue = $value[self::NOTATION_VALUE_PREFIX];
 
         if (Validating::isValid($realValue, $type)) {
             $realSchema = $type;

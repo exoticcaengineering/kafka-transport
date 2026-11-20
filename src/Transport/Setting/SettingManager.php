@@ -214,6 +214,15 @@ class SettingManager
             );
         }
 
+        if ([] !== $avroRecords && array_is_list($avroRecords)) {
+            throw new \InvalidArgumentException(
+                sprintf(
+                    'The "avro_records" option must map message identifiers to record names, a list given %s.',
+                    $contextErrorMessage
+                )
+            );
+        }
+
         foreach ($avroRecords as $identifier => $recordName) {
             if (!\is_string($recordName)) {
                 throw new \InvalidArgumentException(
@@ -229,7 +238,7 @@ class SettingManager
             if (1 !== preg_match(self::AVRO_NAME_PATTERN, $recordName)) {
                 throw new \InvalidArgumentException(
                     sprintf(
-                        'The "avro_records" option maps "%s" to "%s", which is not a valid Avro record name %s.',
+                        'The "avro_records" option maps "%s" to "%s", which is not a valid Avro record name without namespace %s.',
                         $identifier,
                         $recordName,
                         $contextErrorMessage

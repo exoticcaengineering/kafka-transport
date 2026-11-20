@@ -166,7 +166,7 @@ booking_events:
         'exoticca.booking.cancelled': booking_cancelled
 ```
 
-Each record name must be a valid Avro name (`[A-Za-z_][A-Za-z0-9_]*`). If it is not, the transport fails when it is created. If the union has no record with the name, the send fails with an error that lists the records of the union.
+Each record name is the name of the record without its namespace, as the union branches are matched by that name. For example, use `booking_created`, not `com.exoticca.booking_created`. It must be a valid Avro name (`[A-Za-z_][A-Za-z0-9_]*`). If it is not, the transport fails when it is created. If the union has no record with the name, the send fails with an error that lists the records of the union.
 
 ## Security
 

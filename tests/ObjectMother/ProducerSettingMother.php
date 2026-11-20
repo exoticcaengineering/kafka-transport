@@ -16,7 +16,8 @@ final class ProducerSettingMother
             'topics' => ['test-topic-1', 'test-topic-2'],
             'pollTimeoutMs' => 0,
             'flushTimeoutMs' => 10000,
-            'validateSchema' => false
+            'validateSchema' => false,
+            'avroRecords' => [],
         ];
 
         $settings = array_merge($defaults, $overrides);
@@ -27,7 +28,8 @@ final class ProducerSettingMother
             $settings['topics'],
             $settings['pollTimeoutMs'],
             (int) $settings['flushTimeoutMs'],
-            (bool) $settings['validateSchema']
+            (bool) $settings['validateSchema'],
+            $settings['avroRecords'],
         );
     }
 }
