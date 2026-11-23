@@ -104,6 +104,7 @@ final class KafkaTransportSettingResolver
             pollTimeoutMs: $producerOptions['poll_timeout_ms'],
             flushTimeoutMs: $producerOptions['flush_timeout_ms'],
             validateSchema: $producerOptions['validate_schema'],
+            avroRecords: $producerOptions['avro_records'],
         );
 
         return new GeneralSetting(

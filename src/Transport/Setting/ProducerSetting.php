@@ -9,6 +9,7 @@ final readonly class ProducerSetting
     /**
      * @param array<string, mixed> $config
      * @param array<string> $topics
+     * @param array<string, string> $avroRecords message identifier => record name of its Avro union branch
      */
     public function __construct(
         public array $routing = [],
@@ -17,6 +18,7 @@ final readonly class ProducerSetting
         public int $pollTimeoutMs = 0,
         public int $flushTimeoutMs = 10000,
         public bool $validateSchema = false,
+        public array $avroRecords = [],
     ) {
     }
 }

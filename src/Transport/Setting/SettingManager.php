@@ -21,6 +21,9 @@ class SettingManager
         ],
     ];
 
+    // Avro name rule: https://avro.apache.org/docs/1.11.1/specification/#names
+    private const string AVRO_NAME_PATTERN = '/^[A-Za-z_][A-Za-z0-9_]*\z/';
+
     private const array DEFAULT_PRODUCER_OPTIONS = [
         'validate_schema' => false,
         'poll_timeout_ms' => 0,
@@ -28,6 +31,7 @@ class SettingManager
         'routing' => [],
         'topics' => [],
         'config' => [],
+        'avro_records' => [],
     ];
 
     private const array REQUIRED_CONSUMER_CONFIG = [
@@ -192,6 +196,56 @@ class SettingManager
         }
 
         $this->validateRouting($options['routing'], 'name', 'topic', $contextErrorMessage);
+        $this->validateAvroRecords($options['avro_records'], $contextErrorMessage);
+    }
+
+    /**
+     * The option maps a message identifier to the record name of its branch in an Avro union schema.
+     */
+    private function validateAvroRecords(mixed $avroRecords, string $contextErrorMessage): void
+    {
+        if (!\is_array($avroRecords)) {
+            throw new \InvalidArgumentException(
+                sprintf(
+                    'The "avro_records" option type must be array, "%s" %s.',
+                    gettype($avroRecords),
+                    $contextErrorMessage
+                )
+            );
+        }
+
+        if ([] !== $avroRecords && array_is_list($avroRecords)) {
+            throw new \InvalidArgumentException(
+                sprintf(
+                    'The "avro_records" option must map message identifiers to record names, a list given %s.',
+                    $contextErrorMessage
+                )
+            );
+        }
+
+        foreach ($avroRecords as $identifier => $recordName) {
+            if (!\is_string($recordName)) {
+                throw new \InvalidArgumentException(
+                    sprintf(
+                        'The "avro_records" option must map "%s" to a string, "%s" given %s.',
+                        $identifier,
+                        gettype($recordName),
+                        $contextErrorMessage
+                    )
+                );
+            }
+
+            if (1 !== preg_match(self::AVRO_NAME_PATTERN, $recordName)) {
+                throw new \InvalidArgumentException(
+                    sprintf(
+                        'The "avro_records" option maps "%s" to "%s", which is not a valid Avro record name without namespace %s.',
+                        $identifier,
+                        $recordName,
+                        $contextErrorMessage
+                    )
+                );
+            }
+        }
     }
 
 

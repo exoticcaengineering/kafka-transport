@@ -8,6 +8,7 @@ use Exoticca\KafkaMessenger\SchemaRegistry\Avro\AvroSubject;
 use Exoticca\KafkaMessenger\Transport\Setting\KafkaOptionList;
 use Exoticca\KafkaMessenger\Transport\Setting\SettingManager;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(SettingManager::class)]
@@ -168,6 +169,65 @@ class SettingManagerTest extends TestCase
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('The "poll_timeout_ms" option type must be integer');
+
+        $this->settingManager->setupProducerOptions($config, 'test context');
+    }
+
+    public function test_accepts_valid_avro_records(): void
+    {
+        $config = [
+            'producer' => [
+                'avro_records' => ['exoticca.booking.created' => 'booking_created'],
+            ]
+        ];
+
+        $result = $this->settingManager->setupProducerOptions($config, 'test context');
+
+        $this->assertSame(['exoticca.booking.created' => 'booking_created'], $result['avro_records']);
+    }
+
+    /**
+     * @return iterable<string, array{mixed, string}>
+     */
+    public static function invalidAvroRecords(): iterable
+    {
+        yield 'not a map' => [
+            'booking_created',
+            'The "avro_records" option type must be array, "string" test context.',
+        ];
+        yield 'list' => [
+            ['booking_created'],
+            'The "avro_records" option must map message identifiers to record names, a list given test context.',
+        ];
+        yield 'namespaced name' => [
+            ['exoticca.booking.created' => 'com.exoticca.booking_created'],
+            'The "avro_records" option maps "exoticca.booking.created" to "com.exoticca.booking_created", which is not a valid Avro record name without namespace test context.',
+        ];
+        yield 'not a string' => [
+            ['exoticca.booking.created' => 1],
+            'The "avro_records" option must map "exoticca.booking.created" to a string, "integer" given test context.',
+        ];
+        yield 'invalid character' => [
+            ['exoticca.booking.created' => 'booking-created'],
+            'The "avro_records" option maps "exoticca.booking.created" to "booking-created", which is not a valid Avro record name without namespace test context.',
+        ];
+        yield 'trailing newline' => [
+            ['exoticca.booking.created' => "booking_created\n"],
+            "The \"avro_records\" option maps \"exoticca.booking.created\" to \"booking_created\n\", which is not a valid Avro record name without namespace test context.",
+        ];
+    }
+
+    #[DataProvider('invalidAvroRecords')]
+    public function test_throws_exception_for_invalid_avro_records(mixed $avroRecords, string $expectedMessage): void
+    {
+        $config = [
+            'producer' => [
+                'avro_records' => $avroRecords,
+            ]
+        ];
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage($expectedMessage);
 
         $this->settingManager->setupProducerOptions($config, 'test context');
     }
