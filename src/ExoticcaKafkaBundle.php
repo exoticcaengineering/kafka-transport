@@ -10,6 +10,7 @@ use Exoticca\KafkaMessenger\SchemaRegistry\SchemaRegistryManager;
 use Exoticca\KafkaMessenger\Transport\KafkaTransportFactory;
 use Exoticca\KafkaMessenger\Transport\KafkaTransportSettingResolver;
 use Exoticca\KafkaMessenger\Transport\Metadata\KafkaMetadataHookInterface;
+use Exoticca\KafkaMessenger\Transport\Setting\CommitMode;
 use Exoticca\KafkaMessenger\Transport\Setting\SettingManager;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -49,7 +50,12 @@ class ExoticcaKafkaBundle extends AbstractBundle
                         ->end()
                         ->booleanNode('commit_async')
                             ->defaultTrue()
-                            ->info('Use async commit (true/false)')
+                            ->info('Use async commit (true/false). Ignored when commit_mode is set')
+                        ->end()
+                        ->enumNode('commit_mode')
+                            ->values(array_column(CommitMode::cases(), 'value'))
+                            ->defaultNull()
+                            ->info('sync, async or store. Defaults to commit_async')
                         ->end()
                         ->integerNode('consume_timeout_ms')
                             ->defaultNull()

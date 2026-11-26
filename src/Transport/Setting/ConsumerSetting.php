@@ -16,7 +16,7 @@ final readonly class ConsumerSetting
         public array $config = [],
         public array $topics = [],
         public int $consumeTimeout = 500,
-        public bool $commitAsync = true,
+        public CommitMode $commitMode = CommitMode::ASYNC,
         public bool $validateSchema = false,
         public ?string $dlqTopic = null,
         public bool $commitOnReceive = false,

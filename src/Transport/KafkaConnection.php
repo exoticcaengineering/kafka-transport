@@ -6,9 +6,11 @@ namespace Exoticca\KafkaMessenger\Transport;
 
 use Exception;
 use Exoticca\KafkaMessenger\Transport\Serializer\MessageSerializer;
+use Exoticca\KafkaMessenger\Transport\Setting\CommitMode;
 use Exoticca\KafkaMessenger\Transport\Setting\GeneralSetting;
 use RdKafka\Conf;
 use RdKafka\KafkaConsumer;
+use RdKafka\KafkaConsumerTopic;
 use RdKafka\Message;
 use RdKafka\Producer;
 use Symfony\Component\Console\SignalRegistry\SignalRegistry;
@@ -26,7 +28,14 @@ class KafkaConnection
         RD_KAFKA_RESP_ERR_REBALANCE_IN_PROGRESS,
         RD_KAFKA_RESP_ERR__ASSIGNMENT_LOST,
     ];
+    // The partition was revoked while the message was handled, so whoever owns it now reads the message again.
+    private const OFFSET_STORE_PARTITION_LOST_ERRORS = [
+        RD_KAFKA_RESP_ERR__STATE,
+        RD_KAFKA_RESP_ERR__UNKNOWN_PARTITION,
+    ];
     private ?KafkaConsumer $consumer;
+    /** @var array<string, KafkaConsumerTopic> */
+    private array $consumerTopics = [];
     private ?Producer $producer;
 
     private SignalRegistry $signalRegistry;
@@ -139,12 +148,30 @@ class KafkaConnection
 
     private function commit(Message $message): void
     {
-        $consumer = $this->getConsumer();
+        match ($this->generalSetting->consumer->commitMode) {
+            CommitMode::SYNC => $this->getConsumer()->commit($message),
+            CommitMode::ASYNC => $this->getConsumer()->commitAsync($message),
+            CommitMode::STORE => $this->storeOffset($message),
+        };
+    }
 
-        if ($this->generalSetting->consumer->commitAsync) {
-            $consumer->commitAsync($message);
-        } else {
-            $consumer->commit($message);
+    /**
+     * Only marks the message as done: librdkafka commits the stored offsets every auto.commit.interval.ms
+     * and when partitions are revoked, so skipping a burst of messages doesn't send a commit for each one.
+     */
+    private function storeOffset(Message $message): void
+    {
+        $topic = $this->consumerTopics[$message->topic_name] ??= $this->getConsumer()->newTopic($message->topic_name);
+
+        try {
+            // rd_kafka_offset_store() commits offset + 1, the next message to read
+            $topic->offsetStore($message->partition, $message->offset);
+        } catch (\RdKafka\Exception $e) {
+            if (\in_array($e->getCode(), self::OFFSET_STORE_PARTITION_LOST_ERRORS, true)) {
+                return;
+            }
+
+            throw $e;
         }
     }
 
@@ -168,6 +195,7 @@ class KafkaConnection
         } finally {
             $this->consumer->close();
             $this->consumer = null;
+            $this->consumerTopics = [];
             $this->consumerSubscribed = false;
         }
     }
